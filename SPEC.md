@@ -7,27 +7,33 @@
 
 ---
 
-## Equipment Management Module
+## Modulo de Gestao de Equipamentos
 
-### Overview
+### Visao Geral
 
-- Sistema web de gestao de equipamentos com rastreabilidade ponta a ponta.
-- Controle de autenticacao reutilizando fluxo existente em `src/routes/user`.
-- Monitoramento operacional com dashboard, cards de alertas e filtros.
-- Fluxos autorizados para movimentacao, manutencao e auditoria completa.
+- Plataforma web para controlar ciclo de vida de ativos corporativos com rastreabilidade ponta a ponta.
+- Autenticacao obrigatoria reutilizando fluxo existente em `src/routes/user`.
+- Painel operacional com indicadores em tempo real, filtros persistentes e cards de alerta.
+- Fluxos auditaveis para cadastro, movimentacao, manutencao e definicao de politicas.
 
-### Functional Scope
+### Escopo Funcional
 
-- **Dashboard**: `src/routes/equipment/+page.svelte` utiliza consultas em `+page.server.ts` para listar equipamentos com filtros por status, categoria, local e responsavel.
-- **Cadastro e Edicao**: formularios em `src/routes/equipment/new/+page.svelte` e `src/routes/equipment/[id]/edit/+page.svelte` com validacao, anexos e criticidade.
-- **Localizacoes**: CRUD em `src/routes/equipment/locations/+page.svelte` permitindo hierarquia matriz > filial > sala.
-- **Movimentacao**: fluxo de solicitacao em `src/routes/equipment/[id]/transfer/+page.svelte` com aprovacao em `src/routes/equipment/approvals/+page.svelte`.
-- **Manutencao**: agendamento e registro em `src/routes/equipment/[id]/maintenance/+page.svelte`, incluindo anexos de laudos.
-- **Auditoria**: timeline consolidada em `src/routes/equipment/history/+page.svelte`.
-- **Relatorios**: exportacao CSV/Excel via `src/routes/equipment/reports/+page.server.ts` reutilizando utilitarios em `src/lib/utils`.
-- **Notificacoes**: preparar integracao para e-mail ou mensagens internas quando solicitacoes mudarem de status.
+- **Dashboard operacional** (`src/routes/equipment/+page.svelte`): lista equipamentos consultando `+page.server.ts`, inclui cards de status, filtros persistidos via store e atalho para cadastros.
+- **Cadastro e edicao** (`src/routes/equipment/new` e `src/routes/equipment/[id]/edit`): formularios com criticidade, localizacao, anexos e responsavel; actions server-side validam entradas.
+- **Localizacoes** (`src/routes/equipment/locations`): CRUD hierarquico matriz > filial > sala com flags de atividade.
+- **Detalhes e historico** (`src/routes/equipment/[id]` e `[id]/history`): resumo operacional, timeline completa e acessos rapidos para manutencao ou movimentacao.
+- **Movimentacao** (`src/routes/equipment/[id]/transfer`): solicita origem/destino, motivo, aprovador; painel de aprovacao em `src/routes/equipment/approvals`.
+- **Manutencao** (`src/routes/equipment/[id]/maintenance`): agenda preventiva/corretiva, acompanha execucao, anexa laudos e atualiza status operacional.
+- **Relatorios** (`src/routes/equipment/reports/+page.server.ts`): exporta CSV seguindo filtros de categoria e status, preparando integracoes externas.
+- **Politicas de aprovacao** (modeladas em `movement_policy`): mapeiam papeis, escopos e regras, usadas pelos endpoints de movimentacao.
 
-### Workflow Diagrams
+### Componentes e Stores
+
+- Store `equipmentFilters` (`src/lib/stores/equipment.ts`) persiste filtros em localStorage para manter contexto entre sessoes.
+- Rotas utilizam componentes base do design system e cards responsivos para resumo rapido de status.
+- Layout dedicado (`src/routes/equipment/+layout.*`) garante verificacao de autenticacao e injecao de breadcrumbs.
+
+### Fluxos Principais
 
 Fluxo de cadastro inicial:
 
@@ -41,13 +47,13 @@ sequenceDiagram
     UI->>U: Renderiza campos e validacao
     U->>UI: Envia dados
     UI->>SV: POST /equipment
-    SV->>DB: insert equipamento + responsavel
+    SV->>DB: insert equipamento e responsavel
     DB-->>SV: Confirmacao
-    SV-->>UI: Resposta 201 + redirect
-    UI-->>U: Exibe sucesso
+    SV-->>UI: Resposta 201 e redirect
+    UI-->>U: Exibe sucesso e direciona para detalhe
 ```
 
-Fluxo de solicitacao e aprovacao:
+Fluxo de solicitacao e aprovacao de movimentacao:
 
 ```mermaid
 sequenceDiagram
@@ -64,10 +70,10 @@ sequenceDiagram
     WF-->>Auth: Alerta
     Auth->>UI: Abre painel approvals
     UI->>SV: PATCH movimento
-    SV->>DB: Atualiza status + auditoria
+    SV->>DB: Atualiza status e auditoria
     DB-->>SV: Confirmacao
     SV-->>UI: Retorna sucesso
-    UI-->>Req: Atualiza status
+    UI-->>Req: Exibe status atualizado
 ```
 
 Fluxo de manutencao preventiva:
@@ -81,28 +87,26 @@ sequenceDiagram
     participant Dash as Dashboard
     Tec->>UI: Agenda manutencao
     UI->>SV: POST manutencao
-    SV->>DB: Salva evento prevista
+    SV->>DB: Salva evento status PREVISTA
     DB-->>SV: OK
     SV-->>UI: Confirma cadastro
-    UI-->>Dash: Atualiza cards
+    UI-->>Dash: Atualiza cards de manutencao
     Tec->>UI: Finaliza manutencao
     UI->>SV: PATCH resultado
-    SV->>DB: Atualiza status
+    SV->>DB: Atualiza status do equipamento
     DB-->>SV: OK
-    SV-->>UI: Mostra historico
+    SV-->>UI: Mostra historico atualizado
 ```
 
-### Data Model Summary
+### Modelo de Dados e Politicas
 
-- Tabela `equipment`: identifica ativos com campos de status, local atual e responsavel.
-- Tabela `location`: representa hierarquia de locais com relacionamentos parent-child.
-- Tabela `equipment_movement`: registra solicitacoes, autorizacoes e execucoes de movimentacao.
-- Tabela `equipment_maintenance`: controla manutencoes preventivas e corretivas.
-- Tabela `equipment_audit_log`: historico imutavel de eventos relevantes.
-- Tabela `movement_policy`: mapeia regras de aprovacao para papeis, locais e categorias.
+- Tabelas `equipment`, `location`, `equipment_movement`, `equipment_maintenance`, `equipment_audit_log` e `movement_policy` definidas em `src/lib/db/schema.ts`.
+- Enums dedicados controlam status, criticidade, tipos de manutencao e escopo de politicas.
+- Layout server-side valida `event.locals.user` antes de expor dados sensiveis.
+- Movimentacoes futuras devem consultar regras em `movement_policy` para determinar aprovadores.
 
-### Testing Guidelines
+### Testes e Validacao
 
-- Cobrir casos unitarios garantindo validacao de formularios e regras de negocio.
-- Adicionar cenarios E2E em `e2e/equipment*.test.ts` para fluxo completo de cadastro, movimentacao e manutencao.
-- Garantir rollback em erros de movimentacao e bloqueio para equipamentos inativos.
+- Cobertura unit test para stores (`src/lib/stores/equipment.spec.ts`) garantindo persistencia e reset de filtros.
+- Suites existentes validam actions server-side das rotas de usuario; expandir para rotas de equipamento conforme endpoints evoluirem.
+- E2E previstos em `e2e/equipment*.test.ts` para cenarios de cadastro, solicitacao multi-etapa e manutencao concluida.

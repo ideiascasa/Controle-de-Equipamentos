@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getRequestEventMock = vi.hoisted(() => vi.fn());
