@@ -3,12 +3,28 @@
 	import { setLocale } from '$lib/paraglide/runtime';
 
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageServerData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
+	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Badge } from '$lib/components/ui/badge';
+	import {
+		AlertDialog,
+		AlertDialogTrigger,
+		AlertDialogContent,
+		AlertDialogHeader,
+		AlertDialogFooter,
+		AlertDialogTitle,
+		AlertDialogDescription,
+		AlertDialogCancel,
+		AlertDialogAction
+	} from '$lib/components/ui/alert-dialog';
 	import { selectedGroup } from '$lib/stores/selectedGroup';
+	import type { GroupSummary } from '$lib/utils/groups';
 
 	let { data, form }: { data: PageServerData; form?: any } = $props();
 
@@ -33,6 +49,21 @@
 
 		return data.allUsers.filter((user) => !groupUserIds.has(user.id));
 	});
+
+	let systemGroups: GroupSummary[] = $derived(data.systemGroups ?? []);
+	let sortedSystemGroups = $derived.by(() =>
+		[...systemGroups].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+	);
+
+	type EnhanceArgs = Parameters<SubmitFunction>[0];
+
+	let groupName = $state('');
+	let groupDescription = $state('');
+	let createPending = $state(false);
+	let deletePendingId: string | null = $state(null);
+	let createFeedback: { isSuccess: boolean; message: string | undefined } | null = $state(null);
+	let deleteFeedback: { isSuccess: boolean; message: string | undefined } | null = $state(null);
+	let activeFeedback = $derived(createFeedback ?? deleteFeedback);
 
 	// Languages matching project.inlang/settings.json locales (ordered as in settings.json)
 	const languages = [
@@ -76,6 +107,83 @@
 			default:
 				return message;
 		}
+	}
+
+	function resolveSystemMessage(message: string | undefined): string | undefined {
+		if (!message) return undefined;
+		switch (message) {
+			case 'GROUP_CREATED_SUCCESS':
+				return m.groupCreatedSuccess();
+			case 'GROUP_DELETED_SUCCESS':
+				return m.groupDeletedSuccess();
+			case 'GROUP_NAME_REQUIRED':
+				return m.groupNameRequired();
+			case 'GROUP_NAME_TOO_LONG':
+				return m.groupNameTooLong();
+			case 'GROUP_DESCRIPTION_TOO_LONG':
+				return m.groupDescriptionTooLong();
+			case 'GROUP_HAS_MEMBERS':
+				return m.groupHasMembers();
+			case 'GROUP_NOT_FOUND':
+				return m.groupNotFound();
+			case 'SYSTEM_USER_ONLY':
+				return m.systemUserOnly();
+			case 'DATABASE_ERROR':
+				return m.errorOccurred();
+			default:
+				return message;
+		}
+	}
+
+	function enhanceCreate() {
+		return async ({ update, result, form }: EnhanceArgs) => {
+			createPending = true;
+			createFeedback = null;
+			deleteFeedback = null;
+
+			if (result.type === 'success') {
+				await update();
+				createFeedback = {
+					isSuccess: true,
+					message: result.data?.message ?? 'GROUP_CREATED_SUCCESS'
+				};
+				groupName = '';
+				groupDescription = '';
+				if (form instanceof HTMLFormElement) {
+					form.reset();
+				}
+			} else if (result.type === 'failure') {
+				createFeedback = {
+					isSuccess: false,
+					message: result.data?.message ?? 'DATABASE_ERROR'
+				};
+			}
+
+			createPending = false;
+		};
+	}
+
+	function enhanceDelete(groupId: string) {
+		return async ({ update, result }: EnhanceArgs) => {
+			deletePendingId = groupId;
+			deleteFeedback = null;
+			createFeedback = null;
+
+			if (result.type === 'success') {
+				await update();
+				deleteFeedback = {
+					isSuccess: true,
+					message: result.data?.message ?? 'GROUP_DELETED_SUCCESS'
+				};
+			} else if (result.type === 'failure') {
+				deleteFeedback = {
+					isSuccess: false,
+					message: result.data?.message ?? 'DATABASE_ERROR'
+				};
+			}
+
+			deletePendingId = null;
+		};
 	}
 </script>
 
@@ -138,6 +246,124 @@
 			</form>
 		</Card.Content>
 	</Card.Root>
+
+	{#if data.isSystemUser}
+		<Card.Root data-testid="system-group-card">
+			<Card.Header>
+				<Card.Title>{m.systemGroupManagementTitle()}</Card.Title>
+				<Card.Description>{m.systemGroupManagementDescription()}</Card.Description>
+			</Card.Header>
+			<Card.Content class="space-y-6">
+				<section>
+					<h4 class="mb-2 text-sm font-semibold text-muted-foreground">{m.currentGroups()}</h4>
+					{#if sortedSystemGroups.length > 0}
+						<ul class="space-y-3">
+							{#each sortedSystemGroups as group (group.id)}
+								<li class="border-border/60 flex flex-col gap-2 rounded-lg border p-3">
+									<div class="flex flex-col gap-1">
+										<span class="text-sm font-semibold">
+											{group.name || m.unknown()}
+										</span>
+										{#if group.description}
+											<p class="text-muted-foreground text-xs">{group.description}</p>
+										{/if}
+									</div>
+									<div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+										<Badge variant="secondary">
+											{m.membersCount({ count: group.membersCount })}
+										</Badge>
+										<span>{m.createdAtLabel({ date: group.createdAt.slice(0, 10) })}</span>
+									</div>
+									<div class="flex justify-end">
+										<AlertDialog>
+											<AlertDialogTrigger asChild>
+												<Button
+													variant="outline"
+													size="sm"
+													data-testid={`delete-group-${group.id}`}
+												>
+													{m.deleteGroup()}
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent>
+												<AlertDialogHeader>
+													<AlertDialogTitle>{m.groupDeleteConfirmTitle()}</AlertDialogTitle>
+													<AlertDialogDescription>
+														{m.groupDeleteConfirmDescription({
+															name: group.name || m.unknown()
+														})}
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
+													<form
+														method="post"
+														action="?/deleteSystemGroup"
+														use:enhance={enhanceDelete(group.id)}
+													>
+														<input type="hidden" name="groupId" value={group.id} />
+														<AlertDialogAction asChild>
+															<Button
+																type="submit"
+																variant="destructive"
+																size="sm"
+																disabled={deletePendingId === group.id}
+															>
+																{deletePendingId === group.id
+																	? m.deleting()
+																	: m.confirmDelete()}
+															</Button>
+														</AlertDialogAction>
+													</form>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="text-muted-foreground text-sm">{m.noSystemGroups()}</p>
+					{/if}
+				</section>
+
+				<form method="post" action="?/createSystemGroup" class="space-y-4" use:enhance={enhanceCreate}>
+					<div class="space-y-2">
+						<Label for="system-group-name">{m.groupNameLabel()}</Label>
+						<Input
+							id="system-group-name"
+							name="name"
+							bind:value={groupName}
+							placeholder={m.groupNamePlaceholder()}
+							required
+							maxlength="64"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label for="system-group-description">{m.groupDescriptionLabel()}</Label>
+						<Textarea
+							id="system-group-description"
+							name="description"
+							bind:value={groupDescription}
+							placeholder={m.groupDescriptionPlaceholder()}
+							maxlength="256"
+							rows={3}
+						/>
+					</div>
+					{#if activeFeedback}
+						<p
+							class="text-sm {activeFeedback.isSuccess ? 'text-emerald-600' : 'text-red-600'}"
+						>
+							{resolveSystemMessage(activeFeedback.message)}
+						</p>
+					{/if}
+					<Button type="submit" class="w-full" disabled={createPending}>
+						{createPending ? m.creatingGroup() : m.createGroupButton()}
+					</Button>
+				</form>
+			</Card.Content>
+		</Card.Root>
+	{/if}
 
 	{#if data.isAdministrator}
 		<Card.Root>

@@ -5,8 +5,15 @@ import type { Actions, PageServerLoad } from './$types';
 import type { MenuData } from '$lib/components/menu-bread.svelte';
 import { db } from '$lib/db';
 import * as schema from '$lib/db/schema';
-import { addUserToGroup as addUserToGroupUtil, getUsersInGroup } from './utils.server';
-import { eq, and } from 'drizzle-orm';
+import {
+	addUserToGroup as addUserToGroupUtil,
+	getUsersInGroup,
+	getActiveGroupsWithStats,
+	createSystemGroup,
+	deleteSystemGroup,
+	SYSTEM_USER_ID
+} from './utils.server';
+import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
 	const result = requireLogin();
@@ -43,12 +50,17 @@ export const load: PageServerLoad = async () => {
 		}
 	}
 
+	const isSystemUser = result.user?.id === SYSTEM_USER_ID;
+	const systemGroups = isSystemUser ? await getActiveGroupsWithStats(db) : [];
+
 	return {
 		...result,
 		menu,
 		isAdministrator,
 		allUsers,
-		groupMemberships
+		groupMemberships,
+		isSystemUser,
+		systemGroups
 	};
 };
 
@@ -136,5 +148,71 @@ export const actions: Actions = {
 
 		// Return success - the form enhancement will automatically refresh the page data
 		return { success: true, message: 'USER_ADDED_SUCCESSFULLY' };
+	},
+	createSystemGroup: async (event) => {
+		const { locals } = event;
+
+		if (!locals.user || locals.user.id !== SYSTEM_USER_ID) {
+			return fail(403, { action: 'createSystemGroup', message: 'SYSTEM_USER_ONLY' });
+		}
+
+		const formData = await event.request.formData();
+		const fields: Record<string, FormDataEntryValue | null> = {};
+		formData.forEach((value, key) => {
+			fields[key] = value;
+		});
+
+		const result = await createSystemGroup(db, fields, locals.user.id);
+
+		if (!result.success) {
+			const status =
+				result.error === 'GROUP_NAME_REQUIRED' ||
+				result.error === 'GROUP_NAME_TOO_LONG' ||
+				result.error === 'GROUP_DESCRIPTION_TOO_LONG'
+					? 400
+					: 500;
+
+			return fail(status, { action: 'createSystemGroup', message: result.error });
+		}
+
+		return {
+			action: 'createSystemGroup',
+			success: true,
+			message: 'GROUP_CREATED_SUCCESS',
+			group: result.group
+		};
+	},
+	deleteSystemGroup: async (event) => {
+		const { locals } = event;
+
+		if (!locals.user || locals.user.id !== SYSTEM_USER_ID) {
+			return fail(403, { action: 'deleteSystemGroup', message: 'SYSTEM_USER_ONLY' });
+		}
+
+		const formData = await event.request.formData();
+		const groupId = formData.get('groupId');
+
+		if (!groupId || typeof groupId !== 'string') {
+			return fail(400, { action: 'deleteSystemGroup', message: 'GROUP_NOT_FOUND' });
+		}
+
+		const result = await deleteSystemGroup(db, groupId, locals.user.id);
+
+		if (!result.success) {
+			const status =
+				result.error === 'GROUP_NOT_FOUND'
+					? 404
+					: result.error === 'GROUP_HAS_MEMBERS'
+						? 409
+						: 500;
+
+			return fail(status, { action: 'deleteSystemGroup', message: result.error });
+		}
+
+		return {
+			action: 'deleteSystemGroup',
+			success: true,
+			message: 'GROUP_DELETED_SUCCESS'
+		};
 	}
 };
