@@ -108,14 +108,18 @@ describe('ensureDefaultAdminGroupAndRelation', () => {
 		// Verify admin group was created
 		expect(groupInsertValues).toHaveBeenCalledWith({
 			id: '1',
-			name: 'Admin'
+			name: 'Admin',
+			description: 'Grupo administrador padrao',
+			createdById: userId
 		});
 
 		// Verify relation was created with admin privileges
 		expect(relationInsertValues).toHaveBeenCalledWith({
 			groupId: '1',
 			userId: userId,
-			adm: true
+			adm: true,
+			role: 'owner',
+			createdById: userId
 		});
 
 		expect.assertions(4);
@@ -146,7 +150,9 @@ describe('ensureDefaultAdminGroupAndRelation', () => {
 		expect(relationInsertValues).toHaveBeenCalledWith({
 			groupId: '1',
 			userId: userId,
-			adm: true
+			adm: true,
+			role: 'owner',
+			createdById: userId
 		});
 
 		expect.assertions(3);

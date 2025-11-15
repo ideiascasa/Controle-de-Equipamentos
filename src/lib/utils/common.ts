@@ -48,7 +48,9 @@ export async function ensureDefaultAdminGroupAndRelation(
 	if (existingGroup.length === 0) {
 		await db.insert(schema.group).values({
 			id: adminGroupId,
-			name: adminGroupName
+			name: adminGroupName,
+			description: 'Grupo administrador padrao',
+			createdById: userId
 		});
 	}
 
@@ -63,7 +65,9 @@ export async function ensureDefaultAdminGroupAndRelation(
 		await db.insert(schema.relGroup).values({
 			groupId: adminGroupId,
 			userId: userId,
-			adm: true
+			adm: true,
+			role: 'owner',
+			createdById: userId
 		});
 	}
 }
