@@ -42,12 +42,14 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
 	try {
 		if (!existingUser) {
-			const userId = generateUniqueId();
+			// Determine if this is the first user in the system so we can set id = "1"
+			const existingUsers = await db.select().from(table.user);
+			const isFirstUser = existingUsers.length === 0;
+			const userId = isFirstUser ? '1' : generateUniqueId();
 			await db.insert(table.user).values({ id: userId, username: googleUserId, name: username });
 
-			// Check if this is the first user and relate to admin group
-			const userCount = await db.select().from(table.user);
-			if (userCount.length === 1) {
+			// If this is the first user, relate them to the default admin group
+			if (isFirstUser) {
 				await ensureDefaultAdminGroupAndRelation(db, userId);
 			}
 

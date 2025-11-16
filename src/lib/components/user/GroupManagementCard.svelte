@@ -7,21 +7,23 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
-	import {
-		AlertDialog,
-		AlertDialogTrigger,
-		AlertDialogContent,
-		AlertDialogHeader,
+ 	import {
+			AlertDialog,
+			AlertDialogTrigger,
+			AlertDialogContent,
+			AlertDialogHeader,
 		AlertDialogFooter,
 		AlertDialogTitle,
 		AlertDialogDescription,
 		AlertDialogCancel,
-		AlertDialogAction
-	} from '$lib/components/ui/alert-dialog';
-	import type { GroupSummary } from '$lib/utils/groups';
+			AlertDialogAction
+		} from '$lib/components/ui/alert-dialog';
+		import type { GroupSummary } from '$lib/utils/groups';
 
-	export let groups: GroupSummary[] = [];
-	export let formResult: any;
+	const { groups = [] as GroupSummary[], formResult } = $props<{
+		groups?: GroupSummary[];
+		formResult?: any;
+	}>();
 
 	let name = $state('');
 	let description = $state('');
