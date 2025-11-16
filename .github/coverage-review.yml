@@ -169,4 +169,3 @@ jobs:
                 labels: ['product-owner', 'coverage']
               });
             }
-

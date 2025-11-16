@@ -8,7 +8,9 @@ import { pgTable, integer, text, timestamp, boolean, primaryKey, jsonb } from 'd
 - src/routes/doc/schema/+page.md (mirror)
  */
 
-export const user = pgTable('user', {
+const PREFIX = "tesser_";
+
+export const user = pgTable(PREFIX+'user', {
 	id: text('id').primaryKey(),
 	age: integer('age'),
 	name: text('name'),
@@ -16,7 +18,7 @@ export const user = pgTable('user', {
 	passwordHash: text('password_hash')
 });
 
-export const session = pgTable('session', {
+export const session = pgTable(PREFIX+'sessions', {
 	id: text('id').primaryKey(),
 	userId: text('user_id')
 		.notNull()
@@ -24,14 +26,14 @@ export const session = pgTable('session', {
 	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull()
 });
 
-export const group = pgTable('group', {
+export const group = pgTable(PREFIX+'group', {
 	id: text('id').primaryKey().unique(),
 	name: text('name'),
-	description: text('description'),
+	description: text('description')
 });
 
 export const relGroup = pgTable(
-	'rel_group',
+	PREFIX+'rel_group',
 	{
 		groupId: text('group_id')
 			.notNull()
@@ -39,14 +41,14 @@ export const relGroup = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id),
-		adm: boolean('adm').default(false),
+		adm: boolean('adm').default(false)
 	},
 	(table) => ({
 		pk: primaryKey({ columns: [table.groupId, table.userId] })
 	})
 );
 
-export const auditLog = pgTable('audit_log', {
+export const auditLog = pgTable(PREFIX+'audit_log', {
 	id: text('id').primaryKey(),
 	action: text('action').notNull(),
 	performedById: text('performed_by_id').references(() => user.id),

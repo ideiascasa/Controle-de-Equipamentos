@@ -14,6 +14,7 @@ import {
 } from './utils.server';
 import { eq, and } from 'drizzle-orm';
 import { createAuditLog } from '$lib/utils/audit';
+import { m } from '$lib/paraglide/messages.js';
 
 const SYSTEM_USER_ID = '1';
 
@@ -37,13 +38,18 @@ export const load: PageServerLoad = async () => {
 	const systemGroups = isSystemUser ? await getActiveGroupsWithStats(db) : [];
 
 	if (isAdministrator && result.groups) {
-		allUsers = await db
-			.select({
-				id: schema.user.id,
-				username: schema.user.username,
-				name: schema.user.name
-			})
-			.from(schema.user);
+		try {
+			allUsers = await db
+				.select({
+					id: schema.user.id,
+					username: schema.user.username,
+					name: schema.user.name
+				})
+				.from(schema.user);
+		} catch (error) {
+			console.error(m.errorFetchingAllUsers(), error);
+			allUsers = [];
+		}
 
 		// Get all group IDs where user has admin rights
 		const adminGroupIds = result.groups.filter((g) => g.isAdmin === true).map((g) => g.groupId);
@@ -111,6 +117,7 @@ export const actions: Actions = {
 		const formData = await event.request.formData();
 		const userId = formData.get('userId');
 		const groupId = formData.get('groupId');
+		const isAdminValue = formData.get('isAdmin');
 
 		// Validate inputs
 		if (!userId || typeof userId !== 'string') {
@@ -119,6 +126,9 @@ export const actions: Actions = {
 		if (!groupId || typeof groupId !== 'string') {
 			return fail(400, { action: 'addUserToGroup', message: 'GROUP_NOT_SELECTED' });
 		}
+
+		// Convert isAdmin to boolean (check if exists and equals "true")
+		const isAdmin = isAdminValue === 'true' || isAdminValue === 'on';
 
 		// Verify selected group exists and user has admin rights on that specific group
 		const userGroupRelation = locals.groups.find(
@@ -129,25 +139,37 @@ export const actions: Actions = {
 		}
 
 		// Verify target user exists
-		const targetUser = await db
-			.select()
-			.from(schema.user)
-			.where(eq(schema.user.id, userId))
-			.limit(1);
+		let targetUser;
+		try {
+			targetUser = await db
+				.select()
+				.from(schema.user)
+				.where(eq(schema.user.id, userId))
+				.limit(1);
+		} catch (error) {
+			console.error(m.errorVerifyingTargetUser(), error);
+			return fail(500, { action: 'addUserToGroup', message: 'DATABASE_ERROR' });
+		}
 
 		if (targetUser.length === 0) {
 			return fail(404, { action: 'addUserToGroup', message: 'USER_NOT_FOUND' });
 		}
 
 		// Verify group exists
-		const group = await db.select().from(schema.group).where(eq(schema.group.id, groupId)).limit(1);
+		let group;
+		try {
+			group = await db.select().from(schema.group).where(eq(schema.group.id, groupId)).limit(1);
+		} catch (error) {
+			console.error(m.errorVerifyingGroup(), error);
+			return fail(500, { action: 'addUserToGroup', message: 'DATABASE_ERROR' });
+		}
 
 		if (group.length === 0) {
 			return fail(404, { action: 'addUserToGroup', message: 'GROUP_NOT_FOUND' });
 		}
 
 		// Add user to group
-		const result = await addUserToGroupUtil(db, groupId, userId, locals.user.id);
+		const result = await addUserToGroupUtil(db, groupId, userId, locals.user.id, isAdmin);
 
 		if (!result.success) {
 			if (result.error === 'USER_ALREADY_IN_GROUP') {
@@ -204,11 +226,7 @@ export const actions: Actions = {
 		const result = await deleteSystemGroup(db, groupId, locals.user.id);
 		if (!result.success) {
 			const status =
-				result.error === 'GROUP_NOT_FOUND'
-					? 404
-					: result.error === 'GROUP_HAS_MEMBERS'
-						? 409
-						: 500;
+				result.error === 'GROUP_NOT_FOUND' ? 404 : result.error === 'GROUP_HAS_MEMBERS' ? 409 : 500;
 			return fail(status, { action: 'deleteSystemGroup', message: result.error });
 		}
 

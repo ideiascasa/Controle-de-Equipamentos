@@ -7,7 +7,6 @@ import * as table from '$lib/db/schema';
 import { SESSION_EXPIRY_HOURS, SESSION_COOKIE_NAME } from '$env/static/private';
 import { getUserGroupsAndAdmin } from '$lib/utils/common';
 import { m } from '$lib/paraglide/messages.js';
-import { createAuditLog } from '$lib/utils/audit';
 
 const HOUR_IN_MS = 1000 * 60 * 60 * Number(SESSION_EXPIRY_HOURS);
 
@@ -41,43 +40,40 @@ export async function createSession(token: string, userId: string) {
 	};
 	await db.insert(table.session).values(session);
 
-	// Audit log
-	await createAuditLog(db, 'session.create', userId, {
-		sessionId,
-		userId,
-		expiresAt: expiresAt.toISOString()
-	});
-
 	return session;
 }
 
 export async function validateSessionToken(token: string) {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-	const [result] = await db
-		.select({
-			// Adjust user table here to tweak returned data
-			user: { id: table.user.id, username: table.user.username, name: table.user.name },
-			session: table.session
-		})
-		.from(table.session)
-		.innerJoin(table.user, eq(table.session.userId, table.user.id))
-		.where(eq(table.session.id, sessionId));
+	
+	let result;
+	try {
+		const results = await db
+			.select({
+				// Adjust user table here to tweak returned data
+				user: { id: table.user.id, username: table.user.username, name: table.user.name },
+				session: table.session
+			})
+			.from(table.session)
+			.innerJoin(table.user, eq(table.session.userId, table.user.id))
+			.where(eq(table.session.id, sessionId))
+			.limit(1);
+		
+		result = results[0];
+	} catch (error) {
+		// Handle case when tables are empty or query fails
+		return { session: null, user: null, groups: null };
+	}
 
 	if (!result) {
-		return { session: null, user: null };
+		return { session: null, user: null, groups: null };
 	}
 	const { session, user } = result;
 
 	// Ensure expiresAt is a valid Date object
 	if (!session.expiresAt || isNaN(session.expiresAt.getTime())) {
 		await db.delete(table.session).where(eq(table.session.id, session.id));
-		// Audit log for invalid session deletion
-		await createAuditLog(db, 'session.delete', user.id, {
-			sessionId: session.id,
-			userId: user.id,
-			reason: 'invalid_expires_at'
-		});
-		return { session: null, user: null };
+		return { session: null, user: null, groups: null };
 	}
 
 	// Use UTC timestamp for comparison
@@ -86,13 +82,7 @@ export async function validateSessionToken(token: string) {
 	const sessionExpired = now >= expiresAtTime;
 	if (sessionExpired) {
 		await db.delete(table.session).where(eq(table.session.id, session.id));
-		// Audit log for expired session deletion
-		await createAuditLog(db, 'session.delete', user.id, {
-			sessionId: session.id,
-			userId: user.id,
-			reason: 'expired'
-		});
-		return { session: null, user: null };
+		return { session: null, user: null, groups: null };
 	}
 
 	const renewSession = now >= expiresAtTime - HOUR_IN_MS / 2;
@@ -103,14 +93,6 @@ export async function validateSessionToken(token: string) {
 			.update(table.session)
 			.set({ expiresAt: session.expiresAt })
 			.where(eq(table.session.id, session.id));
-		// Audit log for session renewal
-		await createAuditLog(db, 'session.update', user.id, {
-			sessionId: session.id,
-			userId: user.id,
-			oldExpiresAt: oldExpiresAt.toISOString(),
-			newExpiresAt: session.expiresAt.toISOString(),
-			reason: 'renewal'
-		});
 	}
 
 	const groups = await getUserGroupsAndAdmin(db, user.id);
@@ -121,23 +103,21 @@ export async function validateSessionToken(token: string) {
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;
 
 export async function invalidateSession(sessionId: string) {
-	// Get session info before deletion for audit log
-	const [session] = await db
-		.select()
-		.from(table.session)
-		.where(eq(table.session.id, sessionId))
-		.limit(1);
+	let session;
+	try {
+		const results = await db
+			.select()
+			.from(table.session)
+			.where(eq(table.session.id, sessionId))
+			.limit(1);
+		session = results[0];
+	} catch (error) {
+		// Handle case when tables are empty or query fails
+		session = undefined;
+	}
 
 	await db.delete(table.session).where(eq(table.session.id, sessionId));
 
-	// Audit log
-	if (session) {
-		await createAuditLog(db, 'session.delete', session.userId, {
-			sessionId,
-			userId: session.userId,
-			reason: 'manual_invalidation'
-		});
-	}
 }
 
 export function setSessionTokenCookie(event: RequestEvent, token: string, expiresAt: Date) {

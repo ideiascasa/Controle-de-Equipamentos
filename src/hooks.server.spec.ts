@@ -6,7 +6,10 @@ const handlerContainer = vi.hoisted(() => ({ value: [] as Handle[] }));
 const sequenceMock = vi.hoisted(() =>
 	vi.fn((...handlers: Handle[]) => {
 		handlerContainer.value.splice(0, handlerContainer.value.length, ...handlers);
-		return async (event: Parameters<Handle>[0]['event'], resolve: Parameters<Handle>[0]['resolve']) => {
+		return async (
+			event: Parameters<Handle>[0]['event'],
+			resolve: Parameters<Handle>[0]['resolve']
+		) => {
 			const dispatch = async (
 				index: number,
 				currentEvent: Parameters<Handle>[0]['event'],
@@ -33,7 +36,10 @@ vi.mock('@sveltejs/kit/hooks', () => ({
 
 const paraglideMiddlewareMock = vi.hoisted(() =>
 	vi.fn(
-		(request: Request, callback: (params: { request: Request; locale: string }) => Promise<any>) => {
+		(
+			request: Request,
+			callback: (params: { request: Request; locale: string }) => Promise<any>
+		) => {
 			const newRequest = new Request(request, { headers: { 'x-locale': 'pt' } });
 			return callback({ request: newRequest, locale: 'pt-BR' });
 		}

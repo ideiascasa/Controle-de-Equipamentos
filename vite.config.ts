@@ -14,13 +14,19 @@ export default defineConfig({
 			outdir: './src/lib/paraglide'
 		})
 	],
+	ssr: {
+		noExternal: ['bits-ui']
+	},
+	optimizeDeps: {
+		include: ['bits-ui']
+	},
+	resolve: {
+		conditions: ['svelte', 'import', 'module', 'browser', 'default']
+	},
 	// TODO Retry cloudflare workers
 	// define: {
 	// 	// Fix for Cloudflare Workers transport issues
 	// 	global: 'globalThis'
-	// },
-	// optimizeDeps: {
-	// 	exclude: ['@sveltejs/adapter-cloudflare']
 	// },
 	test: {
 		expect: { requireAssertions: true },

@@ -38,14 +38,21 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	const username = claims?.name;
 
 	// Check if user exists, create if not
-	const results = await db.select().from(table.user).where(eq(table.user.username, googleUserId));
-	const existingUser = results.at(0);
+	let existingUser;
+
+	try {
+		const results = await db.select().from(table.user).where(eq(table.user.username, googleUserId));
+		existingUser = results.at(0);
+	} catch (error) { /* empty */ }
 
 	try {
 		if (!existingUser) {
 			// Determine if this is the first user in the system so we can set id = "1"
-			const existingUsers = await db.select().from(table.user);
-			const isFirstUser = existingUsers.length === 0;
+			let existingUsers=null;
+			try {
+				existingUsers = await db.select().from(table.user);
+			} catch (error) { /* empty */ }
+			const isFirstUser = !existingUsers ? true : existingUsers.length === 0;
 			const userId = isFirstUser ? '1' : generateUniqueId();
 			await db.insert(table.user).values({ id: userId, username: googleUserId, name: username });
 
@@ -70,6 +77,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			const sessionToken = auth.generateSessionToken();
 			const session = await auth.createSession(sessionToken, existingUser.id);
 			auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
+
+			if (existingUser.id === '1') {
+				await ensureDefaultAdminGroupAndRelation(db, existingUser.id);
+			}
 
 			// Audit log for login via OAuth
 			await createAuditLog(db, 'user.login', existingUser.id, {

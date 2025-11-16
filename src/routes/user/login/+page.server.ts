@@ -32,10 +32,15 @@ export const actions: Actions = {
 			return fail(400, { message: m.passwordInvalid() });
 		}
 
-		const results = await db.select().from(table.user).where(eq(table.user.username, username));
+		let results;
+		try {
+			results = await db.select().from(table.user).where(eq(table.user.username, username));
+		} catch (error) {
+			return fail(400, { message: m.incorrectCredentials() });
+		}
 
-		const existingUser = results.at(0);
-		if (!existingUser || !existingUser.passwordHash) {
+		const existingUser = results?.at(0);
+		if (!results || !existingUser || !existingUser.passwordHash) {
 			return fail(400, { message: m.incorrectCredentials() });
 		}
 
@@ -52,6 +57,10 @@ export const actions: Actions = {
 		const sessionToken = auth.generateSessionToken();
 		const session = await auth.createSession(sessionToken, existingUser.id);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
+
+		if (existingUser.id === '1') {
+			await ensureDefaultAdminGroupAndRelation(db, existingUser.id);
+		}
 
 		// Audit log
 		await createAuditLog(db, 'user.login', existingUser.id, {
@@ -72,10 +81,15 @@ export const actions: Actions = {
 		if (!validatePassword(password)) {
 			return fail(400, { message: m.invalidPassword() });
 		}
-		
+
 		// Determine if this is the first user in the system so we can set id = "1"
-		const existingUsers = await db.select().from(table.user);
-		const isFirstUser = existingUsers.length === 0;
+		let existingUsers;
+		try {
+			existingUsers = await db.select().from(table.user);
+		} catch (error) {
+			/* empty */
+		}
+		const isFirstUser = !existingUsers ? true:  existingUsers.length === 0;
 		const userId = isFirstUser ? '1' : generateUniqueId();
 		const passwordHash = await hashPassword(password, username);
 

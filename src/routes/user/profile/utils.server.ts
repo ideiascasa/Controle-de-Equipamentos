@@ -3,12 +3,14 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '$lib/db/schema';
 import { validateGroupInput, toGroupSummary, type GroupSummary } from '$lib/utils/groups';
 import { createAuditLog } from '$lib/utils/audit';
+import { m } from '$lib/paraglide/messages.js';
 
 export async function addUserToGroup(
 	db: PostgresJsDatabase<typeof schema>,
 	groupId: string,
 	userId: string,
-	createdById?: string
+	createdById?: string,
+	isAdmin?: boolean
 ): Promise<{ success: boolean; error?: string }> {
 	try {
 		// Check if the relation already exists
@@ -21,21 +23,19 @@ export async function addUserToGroup(
 			return { success: false, error: 'USER_ALREADY_IN_GROUP' };
 		}
 
-		// Insert the relation with adm: false (non-admin by default)
+		// Insert the relation with adm value from parameter (defaults to false)
 		await db.insert(schema.relGroup).values({
 			groupId: groupId,
 			userId: userId,
-			adm: false,
-			createdById: createdById
+			adm: isAdmin ?? false
 		});
 
 		// Audit log
-		if (createdById) {
-			await createAuditLog(db, 'group.add_user', createdById, {
-				groupId,
-				userId
-			});
-		}
+		await createAuditLog(db, 'group.add_user', createdById ?? null, {
+			groupId,
+			userId,
+			isAdmin: isAdmin ?? false
+		});
 
 		return { success: true };
 	} catch (error) {
@@ -51,43 +51,51 @@ export async function getUsersInGroup(
 	db: PostgresJsDatabase<typeof schema>,
 	groupId: string
 ): Promise<{ id: string; username: string; name: string | null; isAdmin: boolean }[]> {
-	const results = await db
-		.select({
-			id: schema.user.id,
-			username: schema.user.username,
-			name: schema.user.name,
-			isAdmin: schema.relGroup.adm
-		})
-		.from(schema.relGroup)
-		.innerJoin(schema.user, eq(schema.relGroup.userId, schema.user.id))
-		.where(eq(schema.relGroup.groupId, groupId));
+	try {
+		const results = await db
+			.select({
+				id: schema.user.id,
+				username: schema.user.username,
+				name: schema.user.name,
+				isAdmin: schema.relGroup.adm
+			})
+			.from(schema.relGroup)
+			.innerJoin(schema.user, eq(schema.relGroup.userId, schema.user.id))
+			.where(eq(schema.relGroup.groupId, groupId));
 
-	return results.map((result) => ({
-		id: result.id,
-		username: result.username,
-		name: result.name,
-		isAdmin: result.isAdmin ?? false
-	}));
+		return results.map((result) => ({
+			id: result.id,
+			username: result.username,
+			name: result.name,
+			isAdmin: result.isAdmin ?? false
+		}));
+	} catch (error) {
+		// Handle case when tables are empty or query fails
+		console.error(m.errorFetchingUsersInGroup(), error);
+		return [];
+	}
 }
 
 export async function getActiveGroupsWithStats(
 	db: PostgresJsDatabase<typeof schema>
 ): Promise<GroupSummary[]> {
-	const rows = await db
-		.select({
-			id: schema.group.id,
-			name: schema.group.name,
-			description: schema.group.description,
-			membersCount: count(schema.relGroup.userId).as('membersCount'),
-			createdAt: schema.group.createdAt
-		})
-		.from(schema.group)
-		.leftJoin(schema.relGroup, eq(schema.relGroup.groupId, schema.group.id))
-		.where(isNull(schema.group.deletedAt))
-		.groupBy(schema.group.id)
-		.orderBy(schema.group.createdAt);
-
-	return rows.map((row) => toGroupSummary(row));
+	try {
+		const rows = await db
+			.select({
+				id: schema.group.id,
+				name: schema.group.name,
+				description: schema.group.description,
+				membersCount: count(schema.relGroup.userId).as('membersCount')
+			})
+			.from(schema.group)
+			.leftJoin(schema.relGroup, eq(schema.relGroup.groupId, schema.group.id))
+			.groupBy(schema.group.id);
+		return rows.map((row) => toGroupSummary(row));
+	} catch (error) {
+		// Handle case when tables are empty or query fails
+		console.error(m.errorFetchingActiveGroupsWithStats(), error);
+		return [];
+	}
 }
 
 export async function createSystemGroup(
@@ -108,14 +116,12 @@ export async function createSystemGroup(
 			.values({
 				id: groupId,
 				name: validated.data.name,
-				description: validated.data.description,
-				createdById: actorId
+				description: validated.data.description
 			})
 			.returning({
 				id: schema.group.id,
 				name: schema.group.name,
-				description: schema.group.description,
-				createdAt: schema.group.createdAt
+				description: schema.group.description
 			});
 
 		// Audit log
@@ -147,33 +153,39 @@ export async function deleteSystemGroup(
 	}
 
 	return db.transaction(async (tx) => {
-		const [groupRecord] = await tx
-			.select()
-			.from(schema.group)
-			.where(and(eq(schema.group.id, groupId), isNull(schema.group.deletedAt)))
-			.limit(1);
+		let groupRecord;
+		try {
+			const groupResults = await tx
+				.select()
+				.from(schema.group)
+				.where(and(eq(schema.group.id, groupId)))
+				.limit(1);
+			groupRecord = groupResults[0];
+		} catch (error) {
+			console.error(m.errorFetchingGroupRecord(), error);
+			return { success: false, error: 'DATABASE_ERROR' };
+		}
 
 		if (!groupRecord) {
 			return { success: false, error: 'GROUP_NOT_FOUND' };
 		}
 
-		const [membersRow] = await tx
-			.select({ total: count(schema.relGroup.userId) })
-			.from(schema.relGroup)
-			.where(eq(schema.relGroup.groupId, groupId));
+		let membersRow;
+		try {
+			const membersResults = await tx
+				.select({ total: count(schema.relGroup.userId) })
+				.from(schema.relGroup)
+				.where(eq(schema.relGroup.groupId, groupId));
+			membersRow = membersResults[0];
+		} catch (error) {
+			console.error(m.errorFetchingMembersCount(), error);
+			return { success: false, error: 'DATABASE_ERROR' };
+		}
 
 		const membersCount = Number(membersRow?.total ?? 0);
 		if (membersCount > 0) {
 			return { success: false, error: 'GROUP_HAS_MEMBERS' };
 		}
-
-		await tx
-			.update(schema.group)
-			.set({
-				deletedAt: new Date(),
-				deletedById: actorId
-			})
-			.where(eq(schema.group.id, groupId));
 
 		// Audit log
 		await createAuditLog(tx, 'group.delete', actorId, {

@@ -95,4 +95,3 @@ jobs:
               issue_number: issueNumber,
               body: noteLines.join('\n')
             });
-

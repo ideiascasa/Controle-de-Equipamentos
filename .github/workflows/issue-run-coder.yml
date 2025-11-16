@@ -61,7 +61,7 @@ jobs:
           export PATH="$HOME/.cursor/bin:$PATH"
           git config --local user.email "suporte@ideias.casa"
           git config --local user.name "AI"
-          
+
           cursor-agent -p --model auto --force --output-format text "You have full access to git, GitHub CLI, and PR operations. You can also run any command you want.
           Work on the issue, read the issue and all issue comments.
           Open that issue and read all comments for refining the work.
@@ -69,13 +69,14 @@ jobs:
           Read the subject has a tag inside brackets and discover if it's a bug, feature, documentation or command.
           If it's a Feature:
           - Document it on '/SPEC.md'
-          - Create a new branch from 'main' to 'feat/feature-***' where *** its the name of the feature; Code the feature and create a PR to 'pre' AND merge with 'dev' branch.
+          - Create a new branch from 'main' to 'feat/feature-***' where *** its the name of the feature; Code the feature and create a PR to 'pre' AND ALWAYS merge to 'dev' branch.
           - Remember to link the PR to the issue.
-          
+
           If it's a Bug:
           - Create a new branch from 'main' to 'fix/***' where *** its the name of the feature; Code the feature and create a PR to 'pre' AND merge with 'dev' branch.
           - Remember to link the PR to the issue.
-          
+
+          Before exit, run "pnpm build" to check if the code compiles and unit tests pass.
           IMPORTANT: Discover the main language on '/README.md' TO OUTPUT ONLY THE FINAL REVIEW IN Markdown to stdout." > review.txt
 
       - name: Comment on the issue with the review
@@ -110,8 +111,6 @@ jobs:
             } catch (error) {
               core.warning('Could not add label "review".');
             }
-
-
 
       - name: Remove label (cleanup)
         uses: actions/github-script@v7
