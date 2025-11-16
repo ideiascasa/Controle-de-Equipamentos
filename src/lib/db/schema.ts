@@ -27,7 +27,7 @@ export const session = pgTable('session', {
 export const group = pgTable('group', {
 	id: text('id').primaryKey().unique(),
 	name: text('name'),
-	description: text('description'),
+	description: text('description')
 });
 
 export const relGroup = pgTable(
@@ -39,7 +39,7 @@ export const relGroup = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id),
-		adm: boolean('adm').default(false),
+		adm: boolean('adm').default(false)
 	},
 	(table) => ({
 		pk: primaryKey({ columns: [table.groupId, table.userId] })

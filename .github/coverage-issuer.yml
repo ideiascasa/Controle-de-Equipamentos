@@ -9,6 +9,5 @@ on:
   push:
     branches:
       - pre
-
 ## TODO Using the '.github/workflows/coverage.yml', create a workflow in '.github/workflows'
 ## to check if there is any scenario that the product owner needs to review regarding business rules.

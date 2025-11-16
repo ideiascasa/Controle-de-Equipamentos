@@ -6,6 +6,7 @@
 - [routes](src/routes) - In that directory must reside all modules, crud, backend and frontend.
 - Each module must be in a group. Look that module as an example "src/routes/user". Everything about the User module must be in that directory, including unit tests and SSR (server side rendering) and backend functions. Everything! In the same directory. The only exception is End-to-End tests, which must be in "/e2e/".
 - Each module must use audit log feature.
+- Each module will need a entry on the list "listDefaultModules" on this file "src/lib/utils/common.ts" on the function "ensureDefaultAdminGroupAndRelation".
 - Should ignore this directory: "/stash"
 - Database Schema - [schema.md](src/lib/db/schema.md) - [schema.ts](src/lib/db/schema.ts) - These files contain the data structure. Also maintain the data structure documentation using Mermaid.js. Run "pnpm db:push" to apply modifications to schema (this command need human review)
 - Maintain [All Project Documentation and Specifications](./SPEC.md).

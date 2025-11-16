@@ -79,20 +79,20 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$HOME/.cursor/bin:$PATH"
-          
+
           cursor-agent -p --model auto --force --output-format text "You have full access to git, GitHub CLI, and PR operations. You can also run any command you want.
           Make a comment on this issue $ISSUE_URL and a review.
           Read the subject has a tag inside brackets and discover if it's a bug, feature, documentation or command.
           If it's a Feature:
           - observe the project guidelines on '/ai-guidelines.md'.
           - Propose in detail all the functionalities to be implemented, which pages will be created and how they will be created. Create numerous flows made in mermaidjs using sequence diagrams and also propose modifications to the database schema. The objective, if it's a feature, is for the proposal to be very clear for the business at the beginning of the comment and to be very detailed for the developer to know how to proceed and which files they will create.
-          
+
           Search at internet for best practices and examples
           Comment with grammar corrections and/or improvements.
           Your summary will contain the same issue but with those corrections and improvements.
           Write a summary in the language discovered on /readme.md
           Treat that language as the main language. DO NOT CHANGE ANY FILES, this is only an issue review.
-          IMPORTANT: Do NOT post the comment yourself. Output ONLY the final review in Markdown to stdout." > review.txt
+          IMPORTANT: Do NOT post the comment yourself. Output ONLY the final review in Markdown to 'review.txt'"
 
       - name: Comment on the issue with the review
         uses: actions/github-script@v7
@@ -144,6 +144,3 @@ jobs:
             } catch (error) {
               core.warning('Could not add label "code".');
             }
-
-
-

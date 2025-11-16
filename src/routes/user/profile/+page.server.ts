@@ -111,6 +111,7 @@ export const actions: Actions = {
 		const formData = await event.request.formData();
 		const userId = formData.get('userId');
 		const groupId = formData.get('groupId');
+		const isAdminValue = formData.get('isAdmin');
 
 		// Validate inputs
 		if (!userId || typeof userId !== 'string') {
@@ -119,6 +120,9 @@ export const actions: Actions = {
 		if (!groupId || typeof groupId !== 'string') {
 			return fail(400, { action: 'addUserToGroup', message: 'GROUP_NOT_SELECTED' });
 		}
+
+		// Convert isAdmin to boolean (check if exists and equals "true")
+		const isAdmin = isAdminValue === 'true' || isAdminValue === 'on';
 
 		// Verify selected group exists and user has admin rights on that specific group
 		const userGroupRelation = locals.groups.find(
@@ -147,7 +151,7 @@ export const actions: Actions = {
 		}
 
 		// Add user to group
-		const result = await addUserToGroupUtil(db, groupId, userId, locals.user.id);
+		const result = await addUserToGroupUtil(db, groupId, userId, locals.user.id, isAdmin);
 
 		if (!result.success) {
 			if (result.error === 'USER_ALREADY_IN_GROUP') {
@@ -204,11 +208,7 @@ export const actions: Actions = {
 		const result = await deleteSystemGroup(db, groupId, locals.user.id);
 		if (!result.success) {
 			const status =
-				result.error === 'GROUP_NOT_FOUND'
-					? 404
-					: result.error === 'GROUP_HAS_MEMBERS'
-						? 409
-						: 500;
+				result.error === 'GROUP_NOT_FOUND' ? 404 : result.error === 'GROUP_HAS_MEMBERS' ? 409 : 500;
 			return fail(status, { action: 'deleteSystemGroup', message: result.error });
 		}
 

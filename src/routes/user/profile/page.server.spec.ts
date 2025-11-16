@@ -74,7 +74,10 @@ vi.mock('$lib/db', () => ({
 
 import { load, actions } from './+page.server';
 
-function createActionEvent(form: Record<string, string | null>, localsOverrides: Partial<typeof defaultLocals> = {}) {
+function createActionEvent(
+	form: Record<string, string | null>,
+	localsOverrides: Partial<typeof defaultLocals> = {}
+) {
 	return {
 		request: {
 			formData: async () => new Map(Object.entries(form))
@@ -143,7 +146,9 @@ describe('profile page load', () => {
 			{ id: 'user-1', username: 'user1', name: 'User 1' },
 			{ id: 'user-2', username: 'user2', name: 'User 2' }
 		]);
-		getUsersInGroupMock.mockResolvedValueOnce([{ id: 'user-3', username: 'member', name: null, isAdmin: false }]);
+		getUsersInGroupMock.mockResolvedValueOnce([
+			{ id: 'user-3', username: 'member', name: null, isAdmin: false }
+		]);
 
 		const result = await load();
 
@@ -184,11 +189,9 @@ describe('profile actions logout', () => {
 	});
 
 	it('returns 401 when session missing', async () => {
-		const result = await actions.logout?.(
-			{
-				locals: { ...defaultLocals, session: null }
-			} as any
-		);
+		const result = await actions.logout?.({
+			locals: { ...defaultLocals, session: null }
+		} as any);
 
 		expect(result).toEqual({ status: 401, data: { action: 'logout' } });
 	});
@@ -224,7 +227,10 @@ describe('profile actions addUserToGroup', () => {
 			) as any
 		);
 
-		expect(result).toEqual({ status: 401, data: { action: 'addUserToGroup', message: 'UNAUTHORIZED' } });
+		expect(result).toEqual({
+			status: 401,
+			data: { action: 'addUserToGroup', message: 'UNAUTHORIZED' }
+		});
 	});
 
 	it('requires administrator role', async () => {
@@ -253,7 +259,9 @@ describe('profile actions addUserToGroup', () => {
 	});
 
 	it('validates groupId input', async () => {
-		const result = await actions.addUserToGroup?.(createActionEvent({ userId: 'target-1', groupId: null }) as any);
+		const result = await actions.addUserToGroup?.(
+			createActionEvent({ userId: 'target-1', groupId: null }) as any
+		);
 
 		expect(result).toEqual({
 			status: 400,
@@ -323,7 +331,11 @@ describe('profile actions addUserToGroup', () => {
 			createActionEvent({ userId: 'target', groupId: 'group-1' }) as any
 		);
 
-		expect(result).toEqual({ action: 'addUserToGroup', success: true, message: 'USER_ADDED_SUCCESSFULLY' });
+		expect(result).toEqual({
+			action: 'addUserToGroup',
+			success: true,
+			message: 'USER_ADDED_SUCCESSFULLY'
+		});
 	});
 });
 
