@@ -71,6 +71,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			const session = await auth.createSession(sessionToken, existingUser.id);
 			auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
+			if (existingUser.id === '1') {
+				await ensureDefaultAdminGroupAndRelation(db, existingUser.id);
+			}
+
 			// Audit log for login via OAuth
 			await createAuditLog(db, 'user.login', existingUser.id, {
 				userId: existingUser.id,

@@ -8,7 +8,8 @@ export async function addUserToGroup(
 	db: PostgresJsDatabase<typeof schema>,
 	groupId: string,
 	userId: string,
-	createdById?: string
+	createdById?: string,
+	isAdmin?: boolean
 ): Promise<{ success: boolean; error?: string }> {
 	try {
 		// Check if the relation already exists
@@ -21,21 +22,19 @@ export async function addUserToGroup(
 			return { success: false, error: 'USER_ALREADY_IN_GROUP' };
 		}
 
-		// Insert the relation with adm: false (non-admin by default)
+		// Insert the relation with adm value from parameter (defaults to false)
 		await db.insert(schema.relGroup).values({
 			groupId: groupId,
 			userId: userId,
-			adm: false,
-			createdById: createdById
+			adm: isAdmin ?? false
 		});
 
 		// Audit log
-		if (createdById) {
-			await createAuditLog(db, 'group.add_user', createdById, {
-				groupId,
-				userId
-			});
-		}
+		await createAuditLog(db, 'group.add_user', createdById ?? null, {
+			groupId,
+			userId,
+			isAdmin: isAdmin ?? false
+		});
 
 		return { success: true };
 	} catch (error) {
@@ -78,15 +77,11 @@ export async function getActiveGroupsWithStats(
 			id: schema.group.id,
 			name: schema.group.name,
 			description: schema.group.description,
-			membersCount: count(schema.relGroup.userId).as('membersCount'),
-			createdAt: schema.group.createdAt
+			membersCount: count(schema.relGroup.userId).as('membersCount')
 		})
 		.from(schema.group)
 		.leftJoin(schema.relGroup, eq(schema.relGroup.groupId, schema.group.id))
-		.where(isNull(schema.group.deletedAt))
-		.groupBy(schema.group.id)
-		.orderBy(schema.group.createdAt);
-
+		.groupBy(schema.group.id);
 	return rows.map((row) => toGroupSummary(row));
 }
 
@@ -108,14 +103,12 @@ export async function createSystemGroup(
 			.values({
 				id: groupId,
 				name: validated.data.name,
-				description: validated.data.description,
-				createdById: actorId
+				description: validated.data.description
 			})
 			.returning({
 				id: schema.group.id,
 				name: schema.group.name,
-				description: schema.group.description,
-				createdAt: schema.group.createdAt
+				description: schema.group.description
 			});
 
 		// Audit log
@@ -150,7 +143,7 @@ export async function deleteSystemGroup(
 		const [groupRecord] = await tx
 			.select()
 			.from(schema.group)
-			.where(and(eq(schema.group.id, groupId), isNull(schema.group.deletedAt)))
+			.where(and(eq(schema.group.id, groupId)))
 			.limit(1);
 
 		if (!groupRecord) {
@@ -166,14 +159,6 @@ export async function deleteSystemGroup(
 		if (membersCount > 0) {
 			return { success: false, error: 'GROUP_HAS_MEMBERS' };
 		}
-
-		await tx
-			.update(schema.group)
-			.set({
-				deletedAt: new Date(),
-				deletedById: actorId
-			})
-			.where(eq(schema.group.id, groupId));
 
 		// Audit log
 		await createAuditLog(tx, 'group.delete', actorId, {

@@ -50,4 +50,3 @@ jobs:
           name: playwright-report
           path: playwright-report
           if-no-files-found: ignore
-

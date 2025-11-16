@@ -1,11 +1,20 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart';
 	import * as Card from '$lib/components/ui/card';
-	import * as Select from '$lib/components/ui/select';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { scaleUtc } from 'd3-scale';
 	import { Area, AreaChart } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+
+	let Select: typeof import('$lib/components/ui/select') | null = $state(null);
+
+	onMount(async () => {
+		if (browser) {
+			Select = await import('$lib/components/ui/select');
+		}
+	});
 
 	const chartData = [
 		{ date: new Date('2024-04-01'), desktop: 222, mobile: 150 },
@@ -156,22 +165,30 @@
 				<ToggleGroup.Item value="30d">Last 30 days</ToggleGroup.Item>
 				<ToggleGroup.Item value="7d">Last 7 days</ToggleGroup.Item>
 			</ToggleGroup.Root>
-			<Select.Root type="single" bind:value={timeRange}>
-				<Select.Trigger
-					size="sm"
-					class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden flex w-40"
-					aria-label="Select a value"
+			{#if Select}
+				<Select.Root type="single" bind:value={timeRange}>
+					<Select.Trigger
+						size="sm"
+						class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden flex w-40"
+						aria-label="Select a value"
+					>
+						<span data-slot="select-value">
+							{selectedLabel}
+						</span>
+					</Select.Trigger>
+					<Select.Content class="rounded-xl">
+						<Select.Item value="90d" class="rounded-lg">Last 3 months</Select.Item>
+						<Select.Item value="30d" class="rounded-lg">Last 30 days</Select.Item>
+						<Select.Item value="7d" class="rounded-lg">Last 7 days</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			{:else}
+				<div
+					class="@[767px]/card:hidden border-input bg-background flex w-40 items-center justify-center rounded-md border px-3 py-2 text-sm"
 				>
-					<span data-slot="select-value">
-						{selectedLabel}
-					</span>
-				</Select.Trigger>
-				<Select.Content class="rounded-xl">
-					<Select.Item value="90d" class="rounded-lg">Last 3 months</Select.Item>
-					<Select.Item value="30d" class="rounded-lg">Last 30 days</Select.Item>
-					<Select.Item value="7d" class="rounded-lg">Last 7 days</Select.Item>
-				</Select.Content>
-			</Select.Root>
+					{selectedLabel}
+				</div>
+			{/if}
 		</Card.Action>
 	</Card.Header>
 	<Card.Content class="px-2 pt-4 sm:px-6 sm:pt-6">
