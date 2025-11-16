@@ -9,6 +9,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
 	import { selectedGroup } from '$lib/stores/selectedGroup';
+	import GroupManagementCard from '$lib/components/user/GroupManagementCard.svelte';
 
 	let { data, form }: { data: PageServerData; form?: any } = $props();
 
@@ -139,6 +140,10 @@
 		</Card.Content>
 	</Card.Root>
 
+	{#if data.isSystemUser}
+		<GroupManagementCard groups={data.systemGroups} formResult={form} />
+	{/if}
+
 	{#if data.isAdministrator}
 		<Card.Root>
 			<Card.Header>
@@ -221,9 +226,9 @@
 								</Select.Root>
 								<input type="hidden" name="userId" value={selectedUserId || ''} />
 							</div>
-							{#if form && form.message}
+							{#if form && form.action === 'addUserToGroup' && form.message}
 								<p
-									class="mb-3 text-sm {form.message === 'USER_ADDED_SUCCESSFULLY'
+									class="mb-3 text-sm {form.success === true
 										? 'text-green-600'
 										: 'text-red-600'}"
 								>

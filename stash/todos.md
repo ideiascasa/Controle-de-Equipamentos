@@ -1,6 +1,9 @@
 ## TODO
 
 - colocar o conceito Tesseract para geração de aplicacao
+- criar mais um pipeline no review que vai executar testes unitarios e corrigir
+- table group - precisa de campo ativdo ou nao
+- audit, mudar ou deletar
 - começar a criar o aplicativo principal.
 - aplicativo principal vai preparar o ambiente, git, vercel, postgres
 - começar os outros apps - Beleza, Foto e Ticket.

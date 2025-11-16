@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 const mockGetRequestEvent = vi.hoisted(() => vi.fn());
