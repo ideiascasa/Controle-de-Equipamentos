@@ -33,14 +33,14 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Cursor CLI
         run: |
-         curl https://cursor.com/install -fsS | bash
-         export PATH="$HOME/.cursor/bin:$PATH"
-         echo "$HOME/.cursor/bin" >> $GITHUB_PATH
+          curl https://cursor.com/install -fsS | bash
+          export PATH="$HOME/.cursor/bin:$PATH"
+          echo "$HOME/.cursor/bin" >> $GITHUB_PATH
 
       - name: Run Cursor Agent
         env:
-         CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-         GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           export PATH="$HOME/.cursor/bin:$PATH"
           git config --local user.email "suporte@ideias.casa"
@@ -51,7 +51,7 @@ jobs:
           - src/lib/index.ts
           - src/lib/stores/**
           - src/lib/utils/**
-          
+
           All those files must have 80% coverage. DO NOT CHANGE ANYTHING, just add the coverage adding '.spec.ts' files understanding what those files do (if you are not sure, do not try to coverage that)
           Finally, in the README.md you will find what language this project uses as the main language and create the 'summary' in that language.
           Do not create additional files like 'VALIDACAO_COVERAGE.md' or 'SUMMARY_COVERAGE.md' or change the 'README.md'.

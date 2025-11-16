@@ -53,6 +53,10 @@ export const actions: Actions = {
 		const session = await auth.createSession(sessionToken, existingUser.id);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
+		if (existingUser.id === '1') {
+			await ensureDefaultAdminGroupAndRelation(db, existingUser.id);
+		}
+
 		// Audit log
 		await createAuditLog(db, 'user.login', existingUser.id, {
 			userId: existingUser.id,
@@ -72,7 +76,7 @@ export const actions: Actions = {
 		if (!validatePassword(password)) {
 			return fail(400, { message: m.invalidPassword() });
 		}
-		
+
 		// Determine if this is the first user in the system so we can set id = "1"
 		const existingUsers = await db.select().from(table.user);
 		const isFirstUser = existingUsers.length === 0;

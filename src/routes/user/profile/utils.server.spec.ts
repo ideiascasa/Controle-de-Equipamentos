@@ -217,7 +217,14 @@ describe('createSystemGroup', () => {
 
 		const returningMock = vi
 			.fn()
-			.mockResolvedValue([{ id: 'group-id', name: 'Alpha', description: null, createdAt: new Date('2024-01-02T03:00:00Z') }]);
+			.mockResolvedValue([
+				{
+					id: 'group-id',
+					name: 'Alpha',
+					description: null,
+					createdAt: new Date('2024-01-02T03:00:00Z')
+				}
+			]);
 		const groupValuesMock = vi.fn(() => ({
 			returning: returningMock
 		}));

@@ -8,12 +8,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { selectedGroup } from '$lib/stores/selectedGroup';
 	import GroupManagementCard from '$lib/components/user/GroupManagementCard.svelte';
 
 	let { data, form }: { data: PageServerData; form?: any } = $props();
 
 	let selectedUserId: string | undefined = $state();
+	let isAdmin: boolean = $state(false);
 
 	let selectedUserDisplay = $derived(data.allUsers?.find((u) => u.id === selectedUserId));
 
@@ -197,6 +199,7 @@
 										result.data?.message === 'USER_ADDED_SUCCESSFULLY'
 									) {
 										selectedUserId = undefined;
+										isAdmin = false;
 									}
 								};
 							}}
@@ -226,12 +229,15 @@
 								</Select.Root>
 								<input type="hidden" name="userId" value={selectedUserId || ''} />
 							</div>
+							<div class="mb-4 flex items-center gap-2">
+								<Checkbox id="isAdmin" bind:checked={isAdmin} />
+								<Label for="isAdmin" class="cursor-pointer text-sm font-normal">
+									{m.addAsAdministrator()}
+								</Label>
+								<input type="hidden" name="isAdmin" value={isAdmin ? 'true' : 'false'} />
+							</div>
 							{#if form && form.action === 'addUserToGroup' && form.message}
-								<p
-									class="mb-3 text-sm {form.success === true
-										? 'text-green-600'
-										: 'text-red-600'}"
-								>
+								<p class="mb-3 text-sm {form.success === true ? 'text-green-600' : 'text-red-600'}">
 									{getErrorMessage(form.message)}
 								</p>
 							{/if}

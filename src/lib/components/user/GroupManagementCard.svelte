@@ -7,18 +7,18 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
- 	import {
-			AlertDialog,
-			AlertDialogTrigger,
-			AlertDialogContent,
-			AlertDialogHeader,
+	import {
+		AlertDialog,
+		AlertDialogTrigger,
+		AlertDialogContent,
+		AlertDialogHeader,
 		AlertDialogFooter,
 		AlertDialogTitle,
 		AlertDialogDescription,
 		AlertDialogCancel,
-			AlertDialogAction
-		} from '$lib/components/ui/alert-dialog';
-		import type { GroupSummary } from '$lib/utils/groups';
+		AlertDialogAction
+	} from '$lib/components/ui/alert-dialog';
+	import type { GroupSummary } from '$lib/utils/groups';
 
 	const { groups = [] as GroupSummary[], formResult } = $props<{
 		groups?: GroupSummary[];
@@ -121,7 +121,7 @@
 	</Card.Header>
 	<Card.Content class="space-y-6">
 		<section>
-			<h4 class="mb-2 text-sm font-semibold text-muted-foreground">{m.currentGroups()}</h4>
+			<h4 class="text-muted-foreground mb-2 text-sm font-semibold">{m.currentGroups()}</h4>
 			{#if sortedGroups.length > 0}
 				<ul class="space-y-3">
 					{#each sortedGroups as group (group.id)}
@@ -134,7 +134,7 @@
 									<p class="text-muted-foreground text-xs">{group.description}</p>
 								{/if}
 							</div>
-							<div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+							<div class="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
 								<Badge variant="secondary">
 									{m.membersCount({ count: group.membersCount })}
 								</Badge>
@@ -165,10 +165,13 @@
 											>
 												<input type="hidden" name="groupId" value={group.id} />
 												<AlertDialogAction asChild>
-													<Button type="submit" variant="destructive" size="sm" disabled={deletePendingId === group.id}>
-														{deletePendingId === group.id
-															? m.deleting()
-															: m.confirmDelete()}
+													<Button
+														type="submit"
+														variant="destructive"
+														size="sm"
+														disabled={deletePendingId === group.id}
+													>
+														{deletePendingId === group.id ? m.deleting() : m.confirmDelete()}
 													</Button>
 												</AlertDialogAction>
 											</form>

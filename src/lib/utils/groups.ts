@@ -13,7 +13,9 @@ export type GroupInputResult =
 			error: string;
 	  };
 
-export function validateGroupInput(fields: Record<string, FormDataEntryValue | null>): GroupInputResult {
+export function validateGroupInput(
+	fields: Record<string, FormDataEntryValue | null>
+): GroupInputResult {
 	const rawName = readField(fields, 'name');
 	const rawDescription = readField(fields, 'description');
 
@@ -59,14 +61,12 @@ export function toGroupSummary(row: {
 	name: string | null;
 	description: string | null;
 	membersCount: number | null;
-	createdAt: Date | null;
 }): GroupSummary {
 	return {
 		id: row.id,
 		name: row.name,
 		description: row.description,
-		membersCount: Number(row.membersCount ?? 0),
-		createdAt: row.createdAt ? row.createdAt.toISOString() : new Date(0).toISOString()
+		membersCount: Number(row.membersCount ?? 0)
 	};
 }
 
