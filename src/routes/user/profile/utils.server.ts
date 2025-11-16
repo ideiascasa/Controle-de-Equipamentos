@@ -26,7 +26,6 @@ export async function addUserToGroup(
 			groupId: groupId,
 			userId: userId,
 			adm: false,
-			createdById: createdById
 		});
 
 		// Audit log
@@ -79,14 +78,11 @@ export async function getActiveGroupsWithStats(
 			name: schema.group.name,
 			description: schema.group.description,
 			membersCount: count(schema.relGroup.userId).as('membersCount'),
-			createdAt: schema.group.createdAt
 		})
 		.from(schema.group)
 		.leftJoin(schema.relGroup, eq(schema.relGroup.groupId, schema.group.id))
-		.where(isNull(schema.group.deletedAt))
 		.groupBy(schema.group.id)
-		.orderBy(schema.group.createdAt);
-
+;
 	return rows.map((row) => toGroupSummary(row));
 }
 
@@ -108,14 +104,12 @@ export async function createSystemGroup(
 			.values({
 				id: groupId,
 				name: validated.data.name,
-				description: validated.data.description,
-				createdById: actorId
+				description: validated.data.description
 			})
 			.returning({
 				id: schema.group.id,
 				name: schema.group.name,
 				description: schema.group.description,
-				createdAt: schema.group.createdAt
 			});
 
 		// Audit log
@@ -150,7 +144,7 @@ export async function deleteSystemGroup(
 		const [groupRecord] = await tx
 			.select()
 			.from(schema.group)
-			.where(and(eq(schema.group.id, groupId), isNull(schema.group.deletedAt)))
+			.where(and(eq(schema.group.id, groupId)))
 			.limit(1);
 
 		if (!groupRecord) {
@@ -166,14 +160,6 @@ export async function deleteSystemGroup(
 		if (membersCount > 0) {
 			return { success: false, error: 'GROUP_HAS_MEMBERS' };
 		}
-
-		await tx
-			.update(schema.group)
-			.set({
-				deletedAt: new Date(),
-				deletedById: actorId
-			})
-			.where(eq(schema.group.id, groupId));
 
 		// Audit log
 		await createAuditLog(tx, 'group.delete', actorId, {

@@ -59,14 +59,12 @@ export function toGroupSummary(row: {
 	name: string | null;
 	description: string | null;
 	membersCount: number | null;
-	createdAt: Date | null;
 }): GroupSummary {
 	return {
 		id: row.id,
 		name: row.name,
 		description: row.description,
-		membersCount: Number(row.membersCount ?? 0),
-		createdAt: row.createdAt ? row.createdAt.toISOString() : new Date(0).toISOString()
+		membersCount: Number(row.membersCount ?? 0)
 	};
 }
 
