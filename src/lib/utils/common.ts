@@ -35,39 +35,37 @@ export async function ensureDefaultAdminGroupAndRelation(
 	db: PostgresJsDatabase<typeof schema>,
 	userId: string
 ): Promise<void> {
-	const adminGroupId = '1';
-	const adminGroupName = 'Admin';
+	const listDefaultModules = [
+		// Adicionar aqui os modulos que serao criados automaticamente
+		{ id: '1', name: 'Admin', descr: 'Grupo administrador padrao' }
+	];
 
-	// Check if the admin group exists
-	const existingGroup = await db
-		.select()
-		.from(schema.group)
-		.where(eq(schema.group.id, adminGroupId));
+	for (const item of listDefaultModules) {
+		// Check if the admin group exists
+		const existingGroup = await db.select().from(schema.group).where(eq(schema.group.id, item.id));
 
-	// Insert the admin group if it doesn't exist
-	if (existingGroup.length === 0) {
-		await db.insert(schema.group).values({
-			id: adminGroupId,
-			name: adminGroupName,
-			description: 'Grupo administrador padrao',
-			createdById: userId
-		});
-	}
+		// Insert the admin group if it doesn't exist
+		if (existingGroup.length === 0) {
+			await db.insert(schema.group).values({
+				id: item.id,
+				name: item.name,
+				description: item.descr
+			});
+		}
 
-	// Check if the user-group relation already exists
-	const existingRelation = await db
-		.select()
-		.from(schema.relGroup)
-		.where(and(eq(schema.relGroup.userId, userId), eq(schema.relGroup.groupId, adminGroupId)));
+		// Check if the user-group relation already exists
+		const existingRelation = await db
+			.select()
+			.from(schema.relGroup)
+			.where(and(eq(schema.relGroup.userId, userId), eq(schema.relGroup.groupId, item.id)));
 
-	// Insert the relation if it doesn't exist
-	if (existingRelation.length === 0) {
-		await db.insert(schema.relGroup).values({
-			groupId: adminGroupId,
-			userId: userId,
-			adm: true,
-			role: 'owner',
-			createdById: userId
-		});
+		// Insert the relation if it doesn't exist
+		if (existingRelation.length === 0) {
+			await db.insert(schema.relGroup).values({
+				groupId: item.id,
+				userId: userId,
+				adm: true
+			});
+		}
 	}
 }

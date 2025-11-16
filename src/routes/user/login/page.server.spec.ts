@@ -24,11 +24,11 @@ function createSelectBuilder(response: any[] = []) {
 const selectMock = vi.hoisted(() => vi.fn(() => createSelectBuilder(selectResponses.shift())));
 const insertMock = vi.hoisted(() =>
 	vi.fn(() => ({
-	values: vi.fn(async () => {
-		if (insertShouldThrow) {
-			throw new Error('db error');
-		}
-	})
+		values: vi.fn(async () => {
+			if (insertShouldThrow) {
+				throw new Error('db error');
+			}
+		})
 	}))
 );
 
@@ -251,9 +251,7 @@ describe('user login actions', () => {
 		selectResponses.push([{ id: 'user-1', username, passwordHash: hash }]);
 
 		await expect(
-			actions.login?.(
-				createActionEvent({ username, password }) as any
-			) as Promise<unknown>
+			actions.login?.(createActionEvent({ username, password }) as any) as Promise<unknown>
 		).rejects.toMatchObject({ location: '/home', status: 302 });
 
 		expect(authMocks.generateSessionToken).toHaveBeenCalled();
@@ -262,74 +260,71 @@ describe('user login actions', () => {
 	});
 });
 
-	describe('user register action', () => {
-		beforeEach(() => {
-			selectResponses.length = 0;
-			insertShouldThrow = false;
-			commonMocks.generateUniqueId.mockClear();
-			commonMocks.ensureDefaultAdminGroupAndRelation.mockClear();
-		});
-
-		it('returns failure when username invalid', async () => {
-			const result = await actions.register?.(
-				createActionEvent({ username: 'bad', password: '123456' }) as any
-			);
-			expect(result).toEqual({ status: 400, data: { message: 'INVALID_USERNAME' } });
-		});
-
-		it('returns failure when password invalid', async () => {
-			const result = await actions.register?.(
-				createActionEvent({ username: 'user@email.com', password: '123' }) as any
-			);
-			expect(result).toEqual({ status: 400, data: { message: 'INVALID_PASSWORD' } });
-		});
-
-		it('handles database errors gracefully', async () => {
-			insertShouldThrow = true;
-			const result = await actions.register?.(
-				createActionEvent({ username: 'user@email.com', password: '123456' }) as any
-			);
-			expect(result).toEqual({ status: 500, data: { message: 'ERROR_OCCURRED' } });
-		});
-
-		it('creates first user with id "1" and admin group relation', async () => {
-			// No users exist yet
-			selectResponses.push([]);
-
-			await expect(
-				actions.register?.(
-					createActionEvent({ username: 'user@email.com', password: '123456' }) as any
-				) as Promise<unknown>
-			).rejects.toMatchObject({ location: '/user/login', status: 302 });
-
-			expect(commonMocks.generateUniqueId).not.toHaveBeenCalled();
-			expect(commonMocks.ensureDefaultAdminGroupAndRelation).toHaveBeenCalledWith(
-				expect.anything(),
-				'1'
-			);
-			expect(authMocks.createSession).toHaveBeenCalledWith('session-token', '1');
-			expect(authMocks.setSessionTokenCookie).toHaveBeenCalled();
-		});
-
-		it('creates subsequent users with generated id and no admin relation', async () => {
-			// At least one user already exists
-			selectResponses.push([{ id: 'existing-user' }]);
-
-			await expect(
-				actions.register?.(
-					createActionEvent({ username: 'user2@email.com', password: 'abcdef' }) as any
-				) as Promise<unknown>
-			).rejects.toMatchObject({ location: '/user/login', status: 302 });
-
-			expect(commonMocks.generateUniqueId).toHaveBeenCalled();
-			expect(commonMocks.ensureDefaultAdminGroupAndRelation).not.toHaveBeenCalled();
-			expect(authMocks.createSession).toHaveBeenCalledWith(
-				'session-token',
-				'generated-user-id'
-			);
-			expect(authMocks.setSessionTokenCookie).toHaveBeenCalled();
-		});
+describe('user register action', () => {
+	beforeEach(() => {
+		selectResponses.length = 0;
+		insertShouldThrow = false;
+		commonMocks.generateUniqueId.mockClear();
+		commonMocks.ensureDefaultAdminGroupAndRelation.mockClear();
 	});
+
+	it('returns failure when username invalid', async () => {
+		const result = await actions.register?.(
+			createActionEvent({ username: 'bad', password: '123456' }) as any
+		);
+		expect(result).toEqual({ status: 400, data: { message: 'INVALID_USERNAME' } });
+	});
+
+	it('returns failure when password invalid', async () => {
+		const result = await actions.register?.(
+			createActionEvent({ username: 'user@email.com', password: '123' }) as any
+		);
+		expect(result).toEqual({ status: 400, data: { message: 'INVALID_PASSWORD' } });
+	});
+
+	it('handles database errors gracefully', async () => {
+		insertShouldThrow = true;
+		const result = await actions.register?.(
+			createActionEvent({ username: 'user@email.com', password: '123456' }) as any
+		);
+		expect(result).toEqual({ status: 500, data: { message: 'ERROR_OCCURRED' } });
+	});
+
+	it('creates first user with id "1" and admin group relation', async () => {
+		// No users exist yet
+		selectResponses.push([]);
+
+		await expect(
+			actions.register?.(
+				createActionEvent({ username: 'user@email.com', password: '123456' }) as any
+			) as Promise<unknown>
+		).rejects.toMatchObject({ location: '/user/login', status: 302 });
+
+		expect(commonMocks.generateUniqueId).not.toHaveBeenCalled();
+		expect(commonMocks.ensureDefaultAdminGroupAndRelation).toHaveBeenCalledWith(
+			expect.anything(),
+			'1'
+		);
+		expect(authMocks.createSession).toHaveBeenCalledWith('session-token', '1');
+		expect(authMocks.setSessionTokenCookie).toHaveBeenCalled();
+	});
+
+	it('creates subsequent users with generated id and no admin relation', async () => {
+		// At least one user already exists
+		selectResponses.push([{ id: 'existing-user' }]);
+
+		await expect(
+			actions.register?.(
+				createActionEvent({ username: 'user2@email.com', password: 'abcdef' }) as any
+			) as Promise<unknown>
+		).rejects.toMatchObject({ location: '/user/login', status: 302 });
+
+		expect(commonMocks.generateUniqueId).toHaveBeenCalled();
+		expect(commonMocks.ensureDefaultAdminGroupAndRelation).not.toHaveBeenCalled();
+		expect(authMocks.createSession).toHaveBeenCalledWith('session-token', 'generated-user-id');
+		expect(authMocks.setSessionTokenCookie).toHaveBeenCalled();
+	});
+});
 
 afterAll(() => {
 	Object.defineProperty(globalThis, 'crypto', {

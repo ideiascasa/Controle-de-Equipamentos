@@ -49,4 +49,3 @@ export async function createAuditLog(
 		payload: payload || null
 	});
 }
-
