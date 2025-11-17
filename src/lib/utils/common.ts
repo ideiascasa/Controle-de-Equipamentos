@@ -37,7 +37,8 @@ export async function ensureDefaultAdminGroupAndRelation(
 ): Promise<void> {
 	const listDefaultModules = [
 		// Adicionar aqui os modulos que serao criados automaticamente
-		{ id: '1', name: 'Admin', descr: 'Grupo administrador padrao' }
+		{ id: '1', name: 'Admin', descr: 'Grupo administrador padrao' },
+		{ id: 'equipment', name: 'Equipamentos', descr: 'Modulo de gestao de equipamentos' }
 	];
 
 	for (const item of listDefaultModules) {
