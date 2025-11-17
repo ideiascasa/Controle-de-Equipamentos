@@ -57,7 +57,7 @@
 	<div class="mb-4 flex gap-4">
 		<select
 			class="border rounded px-3 py-2"
-			on:change={(e) => {
+			onchange={(e) => {
 				const status = e.currentTarget.value;
 				if (status) {
 					goto(`/equipment?status=${status}`);
@@ -138,7 +138,11 @@
 							<button
 								type="submit"
 								class="text-red-600 hover:underline text-sm"
-								onclick="return confirm('{m.equipmentDeleteConfirm()}')"
+								onclick={(e) => {
+									if (!confirm(m.equipmentDeleteConfirm())) {
+										e.preventDefault();
+									}
+								}}
 							>
 								{m.equipmentDelete()}
 							</button>

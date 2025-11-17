@@ -4,7 +4,6 @@
 	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
-	export let form;
 
 	let showMoveForm = false;
 	let submitting = false;
