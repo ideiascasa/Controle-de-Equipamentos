@@ -134,5 +134,6 @@
 	"groupDescriptionTooLong": "Description is too long",
 	"groupCreateFailed": "Could not create the group",
 	"groupHasMembers": "Remove all members before deleting the group",
-	"systemUserOnly": "Only the system user can perform this action"
+	"systemUserOnly": "Only the system user can perform this action",
+	"addAsAdministrator": "新增為管理員"
 }

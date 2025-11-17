@@ -8,7 +8,8 @@ export async function addUserToGroup(
 	db: PostgresJsDatabase<typeof schema>,
 	groupId: string,
 	userId: string,
-	createdById?: string
+	createdById?: string,
+	isAdmin?: boolean
 ): Promise<{ success: boolean; error?: string }> {
 	try {
 		// Check if the relation already exists
@@ -21,20 +22,19 @@ export async function addUserToGroup(
 			return { success: false, error: 'USER_ALREADY_IN_GROUP' };
 		}
 
-		// Insert the relation with adm: false (non-admin by default)
+		// Insert the relation with adm value from parameter (defaults to false)
 		await db.insert(schema.relGroup).values({
 			groupId: groupId,
 			userId: userId,
-			adm: false,
+			adm: isAdmin ?? false,
 		});
 
 		// Audit log
-		if (createdById) {
-			await createAuditLog(db, 'group.add_user', createdById, {
-				groupId,
-				userId
-			});
-		}
+		await createAuditLog(db, 'group.add_user', createdById ?? null, {
+			groupId,
+			userId,
+			isAdmin: isAdmin ?? false
+		});
 
 		return { success: true };
 	} catch (error) {
