@@ -4,6 +4,7 @@ import DatabaseIcon from '@tabler/icons-svelte/icons/database';
 import CloudIcon from '@tabler/icons-svelte/icons/cloud';
 import ServerIcon from '@tabler/icons-svelte/icons/server';
 import BoxIcon from '@tabler/icons-svelte/icons/box';
+import ToolIcon from '@tabler/icons-svelte/icons/tool';
 import { m } from '$lib/paraglide/messages.js';
 
 export interface SoftwareItem {
@@ -31,6 +32,13 @@ export function getSoftwareList(groups?: GroupData): SoftwareItem[] {
 			icon: DatabaseIcon
 		});
 	}
+
+	// Equipment management - available to all authenticated users
+	items.push({
+		title: m.equipment(),
+		url: '/equipment',
+		icon: ToolIcon
+	});
 
 	items.push(
 		{
