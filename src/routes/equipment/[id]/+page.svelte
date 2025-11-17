@@ -4,7 +4,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Edit, Move, Wrench, Calendar, MapPin, User } from 'lucide-svelte';
+	import { Edit, Move, Wrench, Calendar, MapPin, User } from '@lucide/svelte';
 
 	let { data }: { data: PageServerData } = $props();
 

@@ -7,7 +7,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Plus, Search, Filter } from 'lucide-svelte';
+	import { Plus, Search, Filter } from '@lucide/svelte';
 	import { page } from '$app/stores';
 
 	let { data }: { data: PageServerData } = $props();
