@@ -161,3 +161,417 @@ sequenceDiagram
     Server-->>UI: Retorna status ok
     UI-->>Admin: Remove item e apresenta toast
 ```
+
+---
+
+## Sistema de Gestao de Equipamentos
+
+### Descricao
+
+Sistema web de gestao de equipamentos que permite:
+
+* **Autenticacao**: Integracao com o sistema de login e senha existente
+* **Cadastro de Equipamentos**: Registro completo de equipamentos com informacoes detalhadas (codigo, descricao, categoria, status, etc.)
+* **Visualizacao de Localizacao**: Interface para visualizar onde cada equipamento esta localizado atualmente
+* **Rastreamento de Responsabilidades**: Exibicao de quem alocou o equipamento e quem autorizou sua movimentacao
+* **Movimentacao de Equipamentos**: Funcionalidade para realizar transferencias de equipamentos entre locais/usuarios
+* **Manutencao de Equipamentos**: Registro e acompanhamento de manutencoes preventivas e corretivas
+
+### Requisitos
+
+- Sistema web integrado com autenticacao existente
+- Cadastro completo de equipamentos com codigo unico
+- Rastreamento de localizacao atual de cada equipamento
+- Sistema de movimentacao com autorizacao (quando necessario)
+- Registro de manutencoes preventivas e corretivas
+- Auditoria completa de todas as acoes
+- Interface para visualizar historico de movimentacoes e manutencoes
+
+### Caso de Uso
+
+**Ator Principal**: Usuario autenticado do sistema
+
+**Pre-condicoes**:
+- Usuario deve estar autenticado no sistema
+- Usuario deve ter permissao adequada (conforme grupo de acesso)
+
+**Fluxo Principal**:
+
+1. Usuario acessa o modulo de equipamentos
+2. Sistema exibe lista de equipamentos com filtros e busca
+3. Usuario pode:
+   - Visualizar detalhes de um equipamento
+   - Ver historico de movimentacoes
+   - Ver historico de manutencoes
+   - Realizar nova movimentacao (se autorizado)
+   - Registrar manutencao (se autorizado)
+   - Cadastrar novo equipamento (se administrador)
+
+**Fluxo Alternativo - Movimentacao Requer Autorizacao**:
+
+1. Usuario solicita movimentacao de equipamento
+2. Sistema verifica se requer autorizacao
+3. Se sim, envia solicitacao para autorizador
+4. Autorizador recebe notificacao e aprova/rejeita
+5. Se aprovado, movimentacao e executada e registrada
+
+**Pos-condicoes**:
+- Todas as acoes sao registradas no log de auditoria
+- Status do equipamento e atualizado
+- Usuarios relacionados sao notificados (se configurado)
+
+### Fluxos
+
+#### Fluxo 1: Cadastro de Equipamento
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario Autenticado
+    participant UI as EquipmentForm
+    participant S as +page.server.ts (createEquipment)
+    participant DB as Drizzle ORM
+    participant AL as AuditLog
+    
+    U->>UI: Preenche formulario de novo equipamento
+    UI->>S: POST createEquipment(formData)
+    S->>S: Validar permissoes (grupo admin)
+    S->>S: Validar dados (code unico, campos obrigatorios)
+    S->>DB: Verificar se code ja existe
+    DB-->>S: Resultado da verificacao
+    alt Code ja existe
+        S-->>UI: Erro: CODE_ALREADY_EXISTS
+        UI-->>U: Toast de erro
+    else Code disponivel
+        S->>DB: Inserir equipment
+        DB-->>S: Equipamento criado
+        S->>AL: Registrar audit log (equipment.create)
+        AL-->>S: Log registrado
+        S-->>UI: Sucesso com dados do equipamento
+        UI-->>U: Toast de sucesso + redireciona para detalhes
+    end
+```
+
+#### Fluxo 2: Visualizacao de Equipamentos e Localizacao
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario Autenticado
+    participant UI as EquipmentList
+    participant S as +page.server.ts (load)
+    participant DB as Drizzle ORM
+    
+    U->>UI: Acessa pagina de equipamentos
+    UI->>S: GET /equipment (load function)
+    S->>S: Verificar autenticacao
+    S->>DB: Buscar equipamentos com joins (location, user)
+    Note over DB: SELECT equipment.*, location.name,<br/>user.username FROM equipment<br/>LEFT JOIN location ON ...<br/>LEFT JOIN user ON ...
+    DB-->>S: Lista de equipamentos com dados relacionados
+    S->>DB: Buscar estatisticas (total, por status, por localizacao)
+    DB-->>S: Estatisticas agregadas
+    S-->>UI: Dados completos (equipamentos + estatisticas)
+    UI-->>U: Renderiza lista com filtros e busca
+```
+
+#### Fluxo 3: Movimentacao de Equipamento (Com Autorizacao)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario Solicitante
+    participant UI as MovementForm
+    participant S as +page.server.ts (moveEquipment)
+    participant DB as Drizzle ORM
+    participant A as Autorizador
+    participant AL as AuditLog
+    
+    U->>UI: Preenche formulario de movimentacao
+    UI->>S: POST moveEquipment(formData)
+    S->>S: Validar permissoes
+    S->>DB: Verificar se equipamento existe e esta disponivel
+    DB-->>S: Dados do equipamento
+    S->>S: Verificar se requer autorizacao (regra de negocio)
+    alt Requer autorizacao
+        S->>DB: Criar movement com status 'pending'
+        DB-->>S: Movimentacao criada
+        S->>AL: Registrar audit log (equipment.movement.requested)
+        S-->>UI: Sucesso - aguardando autorizacao
+        UI-->>U: Mensagem: "Movimentacao aguardando autorizacao"
+        
+        Note over A: Sistema notifica autorizador
+        A->>UI: Acessa pagina de autorizacoes pendentes
+        UI->>S: GET /equipment/movements/pending
+        S->>DB: Buscar movimentacoes pendentes
+        DB-->>S: Lista de movimentacoes
+        S-->>UI: Dados das movimentacoes
+        UI-->>A: Exibe lista de pendentes
+        
+        A->>UI: Aprova movimentacao
+        UI->>S: POST authorizeMovement(movementId)
+        S->>S: Validar se usuario e autorizador
+        S->>DB: Atualizar movement (status='approved', authorized_by, authorized_at)
+        S->>DB: Atualizar equipment (current_location_id, current_user_id)
+        S->>AL: Registrar audit log (equipment.movement.approved)
+        S-->>UI: Sucesso
+        UI-->>A: Toast de sucesso
+        UI-->>U: Notificacao de aprovacao (se configurado)
+    else Nao requer autorizacao
+        S->>DB: Criar movement com status 'completed'
+        S->>DB: Atualizar equipment (current_location_id, current_user_id)
+        S->>AL: Registrar audit log (equipment.movement.completed)
+        S-->>UI: Sucesso
+        UI-->>U: Toast de sucesso + atualiza lista
+    end
+```
+
+#### Fluxo 4: Registro de Manutencao
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Usuario Autenticado
+    participant UI as MaintenanceForm
+    participant S as +page.server.ts (registerMaintenance)
+    participant DB as Drizzle ORM
+    participant AL as AuditLog
+    
+    U->>UI: Preenche formulario de manutencao
+    UI->>S: POST registerMaintenance(formData)
+    S->>S: Validar permissoes
+    S->>S: Validar dados (equipment_id, type, description, start_date)
+    S->>DB: Verificar se equipamento existe
+    DB-->>S: Dados do equipamento
+    S->>DB: Inserir equipment_maintenance
+    DB-->>S: Manutencao criada
+    alt Status e 'in_progress' ou 'scheduled'
+        S->>DB: Atualizar equipment.status = 'maintenance'
+    end
+    S->>AL: Registrar audit log (equipment.maintenance.registered)
+    AL-->>S: Log registrado
+    S-->>UI: Sucesso com dados da manutencao
+    UI-->>U: Toast de sucesso + atualiza status do equipamento
+```
+
+### Schema
+
+A funcionalidade utiliza as seguintes tabelas:
+
+#### Tabela: `equipment`
+
+Armazena informacoes dos equipamentos:
+
+- `id`: Identificador unico (PK)
+- `code`: Codigo unico do equipamento (NOT NULL, UNIQUE)
+- `name`: Nome/descricao (NOT NULL)
+- `description`: Descricao detalhada
+- `category`: Categoria (ex: informatica, mobiliario, etc)
+- `brand`: Marca
+- `model`: Modelo
+- `serialNumber`: Numero de serie
+- `status`: Status do equipamento (available, in_use, maintenance, unavailable) - DEFAULT 'available'
+- `currentLocationId`: Referencia ao local atual (FK para location)
+- `currentUserId`: Usuario atual responsavel (FK para user)
+- `purchaseDate`: Data de compra
+- `purchaseValue`: Valor em centavos
+- `warrantyExpiry`: Data de expiracao da garantia
+- Campos de auditoria: `createdAt`, `createdById`, `updatedAt`, `updatedById`, `deletedAt`, `deletedById`
+
+#### Tabela: `location`
+
+Armazena locais fisicos onde equipamentos podem estar:
+
+- `id`: Identificador unico (PK)
+- `name`: Nome do local (NOT NULL)
+- `description`: Descricao
+- `address`: Endereco completo (opcional)
+- `building`: Predio/edificio
+- `floor`: Andar
+- `room`: Sala
+- `isActive`: Indica se o local esta ativo (DEFAULT true, NOT NULL)
+- Campos de auditoria: `createdAt`, `createdById`, `updatedAt`, `deletedAt`
+
+#### Tabela: `equipment_movement`
+
+Registra todas as movimentacoes de equipamentos:
+
+- `id`: Identificador unico (PK)
+- `equipmentId`: Referencia ao equipamento (FK, NOT NULL)
+- `fromLocationId`: Local origem (FK para location)
+- `toLocationId`: Local destino (FK para location)
+- `fromUserId`: Usuario origem (FK para user)
+- `toUserId`: Usuario destino (FK para user)
+- `requestedById`: Quem solicitou (FK para user, NOT NULL)
+- `authorizedById`: Quem autorizou (FK para user)
+- `status`: Status da movimentacao (pending, approved, rejected, completed) - DEFAULT 'pending'
+- `reason`: Motivo da movimentacao
+- `notes`: Observacoes adicionais
+- `requestedAt`: Data da solicitacao (DEFAULT NOW, NOT NULL)
+- `authorizedAt`: Data da autorizacao
+- `completedAt`: Data da conclusao
+- `createdAt`: Data de criacao (DEFAULT NOW, NOT NULL)
+
+#### Tabela: `equipment_maintenance`
+
+Registra manutencoes de equipamentos:
+
+- `id`: Identificador unico (PK)
+- `equipmentId`: Referencia ao equipamento (FK, NOT NULL)
+- `type`: Tipo de manutencao (preventive, corrective, calibration) - NOT NULL
+- `description`: Descricao do servico (NOT NULL)
+- `provider`: Fornecedor/prestador do servico
+- `cost`: Custo em centavos
+- `startDate`: Data de inicio (NOT NULL)
+- `endDate`: Data de fim
+- `status`: Status (scheduled, in_progress, completed, cancelled) - DEFAULT 'scheduled'
+- `nextMaintenanceDate`: Proxima manutencao (para manutencao preventiva)
+- `notes`: Observacoes
+- `registeredById`: Quem registrou (FK para user, NOT NULL)
+- `createdAt`: Data de criacao (DEFAULT NOW, NOT NULL)
+- `updatedAt`: Data de atualizacao
+
+### Diagrama de Entidade-Relacionamento
+
+```mermaid
+erDiagram
+    USER {
+        TEXT id PK
+        TEXT username "NOT NULL, UNIQUE"
+        TEXT name
+        TEXT password_hash
+    }
+    
+    EQUIPMENT {
+        TEXT id PK
+        TEXT code "NOT NULL, UNIQUE"
+        TEXT name "NOT NULL"
+        TEXT description
+        TEXT category
+        TEXT brand
+        TEXT model
+        TEXT serial_number
+        TEXT status "NOT NULL, DEFAULT 'available'"
+        TEXT current_location_id FK
+        TEXT current_user_id FK
+        TIMESTAMPTZ created_at "NOT NULL"
+        TEXT created_by_id FK
+    }
+    
+    LOCATION {
+        TEXT id PK
+        TEXT name "NOT NULL"
+        TEXT description
+        TEXT address
+        TEXT building
+        TEXT floor
+        TEXT room
+        BOOLEAN is_active "DEFAULT true, NOT NULL"
+        TIMESTAMPTZ created_at "NOT NULL"
+        TEXT created_by_id FK
+    }
+    
+    EQUIPMENT_MOVEMENT {
+        TEXT id PK
+        TEXT equipment_id FK "NOT NULL"
+        TEXT from_location_id FK
+        TEXT to_location_id FK
+        TEXT from_user_id FK
+        TEXT to_user_id FK
+        TEXT requested_by_id FK "NOT NULL"
+        TEXT authorized_by_id FK
+        TEXT status "NOT NULL, DEFAULT 'pending'"
+        TEXT reason
+        TIMESTAMPTZ requested_at "NOT NULL"
+        TIMESTAMPTZ authorized_at
+        TIMESTAMPTZ completed_at
+    }
+    
+    EQUIPMENT_MAINTENANCE {
+        TEXT id PK
+        TEXT equipment_id FK "NOT NULL"
+        TEXT type "NOT NULL"
+        TEXT description "NOT NULL"
+        TEXT provider
+        INTEGER cost
+        TIMESTAMPTZ start_date "NOT NULL"
+        TIMESTAMPTZ end_date
+        TEXT status "NOT NULL, DEFAULT 'scheduled'"
+        TIMESTAMPTZ next_maintenance_date
+        TEXT registered_by_id FK "NOT NULL"
+        TIMESTAMPTZ created_at "NOT NULL"
+    }
+    
+    AUDIT_LOG {
+        TEXT id PK
+        TEXT action "NOT NULL"
+        TEXT performed_by_id FK
+        JSONB payload
+        TIMESTAMPTZ created_at "NOT NULL"
+    }
+    
+    USER ||--o{ EQUIPMENT : "current_user"
+    USER ||--o{ EQUIPMENT_MOVEMENT : "requested_by"
+    USER ||--o{ EQUIPMENT_MOVEMENT : "authorized_by"
+    USER ||--o{ EQUIPMENT_MOVEMENT : "from_user"
+    USER ||--o{ EQUIPMENT_MOVEMENT : "to_user"
+    USER ||--o{ EQUIPMENT_MAINTENANCE : "registered_by"
+    LOCATION ||--o{ EQUIPMENT : "current_location"
+    LOCATION ||--o{ EQUIPMENT_MOVEMENT : "from_location"
+    LOCATION ||--o{ EQUIPMENT_MOVEMENT : "to_location"
+    EQUIPMENT ||--o{ EQUIPMENT_MOVEMENT : "movements"
+    EQUIPMENT ||--o{ EQUIPMENT_MAINTENANCE : "maintenances"
+```
+
+### Componentes
+
+Componentes reutilizaveis em `src/lib/components/equipment/`:
+
+- `EquipmentList.svelte`: Lista de equipamentos com filtros
+- `EquipmentCard.svelte`: Card de exibicao de equipamento
+- `EquipmentForm.svelte`: Formulario de criacao/edicao
+- `MovementForm.svelte`: Formulario de movimentacao
+- `MaintenanceForm.svelte`: Formulario de manutencao
+- `MovementHistory.svelte`: Historico de movimentacoes
+- `MaintenanceHistory.svelte`: Historico de manutencoes
+- `LocationTracker.svelte`: Rastreamento de localizacao atual
+- `AuthorizationDialog.svelte`: Dialogo de autorizacao de movimentacao
+
+### Estrutura de Modulos
+
+O sistema sera organizado no modulo `equipment` seguindo a arquitetura do projeto:
+
+```
+src/routes/equipment/
+├── +page.svelte                    # Lista principal de equipamentos
+├── +page.server.ts                 # Server-side logic e actions
+├── page.server.spec.ts             # Testes unitarios
+├── [id]/
+│   ├── +page.svelte               # Detalhes do equipamento
+│   ├── +page.server.ts            # Load de dados do equipamento
+│   ├── page.server.spec.ts        # Testes
+│   ├── move/
+│   │   ├── +page.svelte           # Formulario de movimentacao
+│   │   ├── +page.server.ts        # Action de movimentacao
+│   │   └── page.server.spec.ts    # Testes
+│   └── maintenance/
+│       ├── +page.svelte           # Formulario de manutencao
+│       ├── +page.server.ts        # Action de manutencao
+│       └── page.server.spec.ts    # Testes
+├── create/
+│   ├── +page.svelte               # Formulario de criacao
+│   ├── +page.server.ts            # Action de criacao
+│   └── page.server.spec.ts        # Testes
+└── utils.server.ts                 # Funcoes utilitarias
+```
+
+### Seguranca
+
+- Validacao server-side: verificacao de permissoes baseada em grupos
+- Validacao de dados: codigo unico obrigatorio, campos validados
+- Soft delete: equipamentos nao sao removidos fisicamente
+- Auditoria completa: todas as operacoes sao registradas em `audit_log`
+- Autorizacao de movimentacoes: sistema de aprovação para movimentacoes quando necessario
+
+### Localizacao
+
+Todas as strings estao internacionalizadas em `messages/pt-br.json` e sincronizadas com outros idiomas via `project.inlang`.
