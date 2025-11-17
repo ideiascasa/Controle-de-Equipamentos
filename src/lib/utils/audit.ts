@@ -14,7 +14,18 @@ export type AuditAction =
 	| 'group.create'
 	| 'group.delete'
 	| 'group.add_user'
-	| 'group.remove_user';
+	| 'group.remove_user'
+	| 'equipment.created'
+	| 'equipment.updated'
+	| 'equipment.deleted'
+	| 'equipment.allocated'
+	| 'equipment.moved'
+	| 'equipment.authorized'
+	| 'equipment.rejected'
+	| 'equipment.maintenance.created'
+	| 'location.created'
+	| 'location.updated'
+	| 'location.deleted';
 
 export interface AuditPayload {
 	[key: string]: unknown;
