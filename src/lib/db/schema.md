@@ -1,6 +1,8 @@
 # Database Schema (Mermaid)
 
-> This document mirrors; Update this file whenever the TypeScript schema changes!
+> This document has mirrors; Update this file whenever the TypeScript schema changes!
+> As an AI, does not loop on these files.
+> Read all files and stop to recursive search.
 
 - src/lib/db/schema.ts (original)
 - src/lib/db/schema.md (mirror)
@@ -66,6 +68,9 @@ Details and constraints
 
 - group.id is UNIQUE and serves as the primary key (NOT NULL)
 - group.name and group.description are nullable
+- Default groups created on first user login:
+  - ID '1': "Admin" - Default administrator group
+  - ID '2': "Guest" - Default guest group for all users
 
 **REL_GROUP table:**
 

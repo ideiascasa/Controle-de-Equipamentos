@@ -44,7 +44,8 @@ export async function ensureDefaultAdminGroupAndRelation(
 ): Promise<void> {
 	const listDefaultModules = [
 		// Adicionar aqui os modulos que serao criados automaticamente
-		{ id: '1', name: m.defaultAdminGroupName(), descr: m.defaultAdminGroupDescription() }
+		{ id: '1', name: m.defaultAdminGroupName(), descr: m.defaultAdminGroupDescription() },
+		{ id: '2', name: m.defaultGuestGroupName(), descr: m.defaultGuestGroupDescription() }
 	];
 
 	for (const item of listDefaultModules) {
@@ -89,7 +90,7 @@ export async function ensureDefaultAdminGroupAndRelation(
 				await db.insert(schema.relGroup).values({
 					groupId: item.id,
 					userId: userId,
-					adm: true
+					adm: item.id === '1' // Only admin group gets adm flag
 				});
 			} catch (error) {
 				console.error(m.errorInsertingUserGroupRelation(), error);

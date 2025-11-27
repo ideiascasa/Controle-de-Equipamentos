@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Erreur lors de la verification de l'utilisateur cible:",
 	"errorVerifyingGroup": "Erreur lors de la verification du groupe:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Groupe administrateur par defaut"
+	"defaultAdminGroupDescription": "Groupe administrateur par defaut",
+	"defaultGuestGroupName": "Invite",
+	"defaultGuestGroupDescription": "Groupe invite par defaut pour tous les utilisateurs"
 }

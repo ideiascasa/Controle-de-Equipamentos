@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "驗證目標用戶時出錯:",
 	"errorVerifyingGroup": "驗證組時出錯:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "默認管理員組"
+	"defaultAdminGroupDescription": "默認管理員組",
+	"defaultGuestGroupName": "访客",
+	"defaultGuestGroupDescription": "所有用户的默认访客组"
 }

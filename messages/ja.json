@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "ターゲットユーザーの確認中にエラーが発生しました:",
 	"errorVerifyingGroup": "グループの確認中にエラーが発生しました:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "デフォルト管理者グループ"
+	"defaultAdminGroupDescription": "デフォルト管理者グループ",
+	"defaultGuestGroupName": "ゲスト",
+	"defaultGuestGroupDescription": "すべてのユーザーのデフォルトゲストグループ"
 }

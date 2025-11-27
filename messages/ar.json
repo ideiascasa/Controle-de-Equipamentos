@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "خطأ في التحقق من المستخدم المستهدف:",
 	"errorVerifyingGroup": "خطأ في التحقق من المجموعة:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "مجموعة المسؤول الافتراضية"
+	"defaultAdminGroupDescription": "مجموعة المسؤول الافتراضية",
+	"defaultGuestGroupName": "ضيف",
+	"defaultGuestGroupDescription": "مجموعة الضيوف الافتراضية لجميع المستخدمين"
 }

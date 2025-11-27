@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Error al verificar usuario objetivo:",
 	"errorVerifyingGroup": "Error al verificar grupo:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Grupo administrador predeterminado"
+	"defaultAdminGroupDescription": "Grupo administrador predeterminado",
+	"defaultGuestGroupName": "Invitado",
+	"defaultGuestGroupDescription": "Grupo de invitados predeterminado para todos los usuarios"
 }

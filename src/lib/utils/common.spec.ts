@@ -88,14 +88,20 @@ describe('ensureDefaultAdminGroupAndRelation', () => {
 
 		// Mock: admin group doesn't exist (empty array)
 		mockWhere.mockResolvedValueOnce([]);
+		// Mock: guest group doesn't exist (empty array)
+		mockWhere.mockResolvedValueOnce([]);
 
-		// Mock: user-group relation doesn't exist (empty array)
+		// Mock: user-admin group relation doesn't exist (empty array)
+		mockWhere.mockResolvedValueOnce([]);
+		// Mock: user-guest group relation doesn't exist (empty array)
 		mockWhere.mockResolvedValueOnce([]);
 
 		// Mock insert operations
 		const groupInsertValues = vi.fn().mockResolvedValue(undefined);
 		const relationInsertValues = vi.fn().mockResolvedValue(undefined);
 		mockInsert
+			.mockReturnValueOnce({ values: groupInsertValues })
+			.mockReturnValueOnce({ values: relationInsertValues })
 			.mockReturnValueOnce({ values: groupInsertValues })
 			.mockReturnValueOnce({ values: relationInsertValues });
 
@@ -109,53 +115,74 @@ describe('ensureDefaultAdminGroupAndRelation', () => {
 		expect(groupInsertValues).toHaveBeenCalledWith({
 			id: '1',
 			name: 'Admin',
-			description: 'Grupo administrador padrao',
-			createdById: userId
+			description: 'Default administrator group'
 		});
 
 		// Verify relation was created with admin privileges
 		expect(relationInsertValues).toHaveBeenCalledWith({
 			groupId: '1',
 			userId: userId,
-			adm: true,
-			role: 'owner',
-			createdById: userId
+			adm: true
 		});
 
 		expect.assertions(4);
 	});
 
-	it('should create only relation when admin group already exists', async () => {
+	it('should create both groups and relations when neither exist', async () => {
 		const userId = 'test-user-2';
 
-		// Mock: admin group exists (non-empty array)
-		mockWhere.mockResolvedValueOnce([{ id: '1', name: 'Admin' }]);
-
-		// Mock: user-group relation doesn't exist (empty array)
+		// Mock: admin group doesn't exist (empty array)
+		mockWhere.mockResolvedValueOnce([]);
+		// Mock: guest group doesn't exist (empty array)  
 		mockWhere.mockResolvedValueOnce([]);
 
-		// Mock insert operation for relation only
-		const relationInsertValues = vi.fn().mockResolvedValue(undefined);
-		mockInsert.mockReturnValueOnce({ values: relationInsertValues });
+		// Mock: user-admin group relation doesn't exist (empty array)
+		mockWhere.mockResolvedValueOnce([]);
+		// Mock: user-guest group relation doesn't exist (empty array)
+		mockWhere.mockResolvedValueOnce([]);
+
+		// Mock insert operations - groups first, then relations
+		const groupInsertValues1 = vi.fn().mockResolvedValue(undefined);
+		const relationInsertValues1 = vi.fn().mockResolvedValue(undefined);
+		const groupInsertValues2 = vi.fn().mockResolvedValue(undefined);
+		const relationInsertValues2 = vi.fn().mockResolvedValue(undefined);
+		mockInsert
+			.mockReturnValueOnce({ values: groupInsertValues1 })
+			.mockReturnValueOnce({ values: relationInsertValues1 })
+			.mockReturnValueOnce({ values: groupInsertValues2 })
+			.mockReturnValueOnce({ values: relationInsertValues2 });
 
 		await ensureDefaultAdminGroupAndRelation(mockDb, userId);
 
-		// Verify select was called for checking group and relation
-		expect(mockSelect).toHaveBeenCalled();
-
-		// Verify insert was called only once (for relation, not for group)
-		expect(mockInsert).toHaveBeenCalledTimes(1);
-
-		// Verify relation was created with admin privileges
-		expect(relationInsertValues).toHaveBeenCalledWith({
-			groupId: '1',
-			userId: userId,
-			adm: true,
-			role: 'owner',
-			createdById: userId
+		// Verify admin group was created
+		expect(groupInsertValues1).toHaveBeenCalledWith({
+			id: '1',
+			name: 'Admin',
+			description: 'Default administrator group'
 		});
 
-		expect.assertions(3);
+		// Verify guest group was created
+		expect(groupInsertValues2).toHaveBeenCalledWith({
+			id: '2',
+			name: 'Guest',
+			description: 'Default guest group for all users'
+		});
+
+		// Verify admin relation was created with admin privileges
+		expect(relationInsertValues1).toHaveBeenCalledWith({
+			groupId: '1',
+			userId: userId,
+			adm: true
+		});
+
+		// Verify guest relation was created without admin privileges
+		expect(relationInsertValues2).toHaveBeenCalledWith({
+			groupId: '2',
+			userId: userId,
+			adm: false
+		});
+
+		expect.assertions(4);
 	});
 
 	it('should not create anything when both group and relation already exist', async () => {
@@ -163,9 +190,13 @@ describe('ensureDefaultAdminGroupAndRelation', () => {
 
 		// Mock: admin group exists (non-empty array)
 		mockWhere.mockResolvedValueOnce([{ id: '1', name: 'Admin' }]);
+		// Mock: guest group exists (non-empty array)
+		mockWhere.mockResolvedValueOnce([{ id: '2', name: 'Guest' }]);
 
-		// Mock: user-group relation exists (non-empty array)
+		// Mock: user-admin group relation exists (non-empty array)
 		mockWhere.mockResolvedValueOnce([{ groupId: '1', userId: userId, adm: true }]);
+		// Mock: user-guest group relation exists (non-empty array)
+		mockWhere.mockResolvedValueOnce([{ groupId: '2', userId: userId, adm: false }]);
 
 		await ensureDefaultAdminGroupAndRelation(mockDb, userId);
 

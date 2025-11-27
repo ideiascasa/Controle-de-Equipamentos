@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Ошибка при проверке целевого пользователя:",
 	"errorVerifyingGroup": "Ошибка при проверке группы:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Группа администратора по умолчанию"
+	"defaultAdminGroupDescription": "Группа администратора по умолчанию",
+	"defaultGuestGroupName": "Гость",
+	"defaultGuestGroupDescription": "Группа гостей по умолчанию для всех пользователей"
 }

@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "लक्ष्य उपयोगकर्ता सत्यापित करने में त्रुटि:",
 	"errorVerifyingGroup": "समूह सत्यापित करने में त्रुटि:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "डिफ़ॉल्ट प्रशासक समूह"
+	"defaultAdminGroupDescription": "डिफ़ॉल्ट प्रशासक समूह",
+	"defaultGuestGroupName": "अतिथि",
+	"defaultGuestGroupDescription": "सभी उपयोगकर्ताओं के लिए डिफ़ॉल्ट अतिथि समूह"
 }

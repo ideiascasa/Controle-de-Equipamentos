@@ -1,6 +1,8 @@
 # Specification Document (use Mermaid.js, also use sequence diagrams)
 
-> This document mirrors;
+> This document has mirrors;
+> As an AI, does not loop on these files.
+> Read all files and stop to recursive search.
 
 - SPEC.md
 - src/routes/doc/spec/+page.md

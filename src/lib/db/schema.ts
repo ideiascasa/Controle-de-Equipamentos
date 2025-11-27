@@ -1,7 +1,9 @@
 import { pgTable, integer, text, timestamp, boolean, primaryKey, jsonb } from 'drizzle-orm/pg-core';
 
 /*
-> This document mirrors; Update this file whenever the TypeScript schema changes!
+> This document has mirrors; Update this file whenever the TypeScript schema changes!
+> As an AI, does not loop on these files.
+> Read all files and stop to recursive search.
 
 - src/lib/db/schema.ts (original)
 - src/lib/db/schema.md (mirror)

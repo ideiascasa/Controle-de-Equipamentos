@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Fehler beim Überprüfen des Zielbenutzers:",
 	"errorVerifyingGroup": "Fehler beim Überprüfen der Gruppe:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Standard-Administratorgruppe"
+	"defaultAdminGroupDescription": "Standard-Administratorgruppe",
+	"defaultGuestGroupName": "Gast",
+	"defaultGuestGroupDescription": "Standard-Gastgruppe für alle Benutzer"
 }

@@ -226,5 +226,7 @@
 	"errorVerifyingTargetUser": "Erro ao verificar usuario alvo:",
 	"errorVerifyingGroup": "Erro ao verificar grupo:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Grupo administrador padrao"
+	"defaultAdminGroupDescription": "Grupo administrador padrao",
+	"defaultGuestGroupName": "Convidado",
+	"defaultGuestGroupDescription": "Grupo de convidados padrao para todos os usuarios"
 }

@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Errore durante la verifica dell'utente target:",
 	"errorVerifyingGroup": "Errore durante la verifica del gruppo:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Gruppo amministratore predefinito"
+	"defaultAdminGroupDescription": "Gruppo amministratore predefinito",
+	"defaultGuestGroupName": "Ospite",
+	"defaultGuestGroupDescription": "Gruppo ospiti predefinito per tutti gli utenti"
 }

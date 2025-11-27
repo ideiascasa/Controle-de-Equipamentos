@@ -152,5 +152,7 @@
 	"errorVerifyingTargetUser": "Error verifying target user:",
 	"errorVerifyingGroup": "Error verifying group:",
 	"defaultAdminGroupName": "Admin",
-	"defaultAdminGroupDescription": "Default administrator group"
+	"defaultAdminGroupDescription": "Default administrator group",
+	"defaultGuestGroupName": "Guest",
+	"defaultGuestGroupDescription": "Default guest group for all users"
 }
